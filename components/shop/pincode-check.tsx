@@ -5,11 +5,52 @@ import { type FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+interface ServiceabilityEta {
+  standard: { minDays: number; maxDays: number };
+  express?: { minDays: number; maxDays: number };
+  sameDay?: { minDays: number; maxDays: number };
+}
+
+interface ServiceabilityResponse {
+  pincode: string;
+  serviceable: boolean;
+  city: string | null;
+  state: string | null;
+  codAvailable: boolean;
+  eta: ServiceabilityEta;
+}
+
 type Result =
-  | { ok: true; pincode: string; eta: string; city?: string; state?: string }
+  | {
+      ok: true;
+      pincode: string;
+      etaLabel: string;
+      city: string | null;
+      state: string | null;
+      sameDayEligible: boolean;
+    }
   | { ok: false; pincode: string; message: string };
 
 const PIN_RE = /^[1-9][0-9]{5}$/;
+
+function formatEta(eta: ServiceabilityEta): { label: string; sameDay: boolean } {
+  if (eta.sameDay) return { label: 'same-day delivery', sameDay: true };
+  if (eta.express) {
+    const e = eta.express;
+    return {
+      label: `${e.minDays === e.maxDays ? `${e.minDays} day${e.minDays === 1 ? '' : 's'}` : `${e.minDays}–${e.maxDays} days`} (express)`,
+      sameDay: false,
+    };
+  }
+  const s = eta.standard;
+  return {
+    label:
+      s.minDays === s.maxDays
+        ? `${s.minDays} business day${s.minDays === 1 ? '' : 's'}`
+        : `${s.minDays}–${s.maxDays} business days`,
+    sameDay: false,
+  };
+}
 
 export function PincodeCheck() {
   const [pincode, setPincode] = useState('');
@@ -24,33 +65,35 @@ export function PincodeCheck() {
     }
     setPending(true);
     try {
-      // TODO(integration): call /api/serviceability when Sprint 4 lands.
-      // Phase 1 fallback: India Post lookup, returns first matching post office.
-      const res = await fetch(
-        `https://api.postalpincode.in/pincode/${encodeURIComponent(pincode)}`,
-        { cache: 'force-cache' },
-      );
-      const json = (await res.json()) as Array<{
-        Status: string;
-        PostOffice?: { District?: string; State?: string }[];
-      }>;
-      const top = json[0];
-      if (!top || top.Status !== 'Success' || !top.PostOffice?.[0]) {
+      const res = await fetch(`/api/serviceability?pincode=${encodeURIComponent(pincode)}`, {
+        cache: 'force-cache',
+      });
+      if (!res.ok) {
         setResult({
           ok: false,
           pincode,
-          message: 'We could not find this PIN code. Please re-check.',
+          message: 'Could not verify right now. Please try again.',
         });
-      } else {
-        const { District, State } = top.PostOffice[0];
-        setResult({
-          ok: true,
-          pincode,
-          eta: '3–5 business days',
-          city: District,
-          state: State,
-        });
+        return;
       }
+      const data = (await res.json()) as ServiceabilityResponse;
+      if (!data.serviceable) {
+        setResult({
+          ok: false,
+          pincode,
+          message: 'Sorry, we do not deliver to this PIN code yet.',
+        });
+        return;
+      }
+      const { label, sameDay } = formatEta(data.eta);
+      setResult({
+        ok: true,
+        pincode,
+        etaLabel: label,
+        city: data.city,
+        state: data.state,
+        sameDayEligible: sameDay,
+      });
     } catch {
       setResult({
         ok: false,
@@ -89,7 +132,17 @@ export function PincodeCheck() {
           <CheckCircle2 aria-hidden className="mt-0.5 size-4" />
           <span>
             Delivers to {result.city ?? result.pincode}
-            {result.state ? `, ${result.state}` : ''} in <strong>{result.eta}</strong>.
+            {result.state ? `, ${result.state}` : ''}{' '}
+            {result.sameDayEligible ? (
+              <>
+                — eligible for <strong>{result.etaLabel}</strong>
+              </>
+            ) : (
+              <>
+                in <strong>{result.etaLabel}</strong>
+              </>
+            )}
+            .
           </span>
         </p>
       )}
