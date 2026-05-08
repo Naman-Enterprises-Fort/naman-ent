@@ -1,6 +1,7 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { prisma } from '@/lib/db';
 import { formatINR } from '@/lib/money';
 
@@ -38,15 +39,19 @@ export default async function AdminProductsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-8">
-      <header className="flex items-end justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="font-semibold text-3xl tracking-tight">Products</h1>
           <p className="text-muted-foreground text-sm">
-            {products.length} product{products.length === 1 ? '' : 's'}. Read-only in Sprint 1 —
-            populate via <code className="rounded bg-muted px-1 py-0.5 text-xs">pnpm db:seed</code>{' '}
-            or the API.
+            {products.length} product{products.length === 1 ? '' : 's'}.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/admin/products/new" className="flex items-center gap-1.5">
+            <Plus aria-hidden className="size-4" />
+            New product
+          </Link>
+        </Button>
       </header>
       {products.length === 0 ? (
         <div className="rounded-lg border border-dashed bg-muted/30 p-12 text-center">
@@ -79,7 +84,11 @@ export default async function AdminProductsPage() {
                 const v = p.variants[0];
                 return (
                   <tr key={p.id} className="hover:bg-accent/40">
-                    <td className="px-4 py-3 font-medium">{p.name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link href={`/admin/products/${p.id}`} className="hover:underline">
+                        {p.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{p.brand?.name ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{v?.sku ?? '—'}</td>
                     <td className="px-4 py-3 text-right">{v ? formatINR(v.price) : '—'}</td>
