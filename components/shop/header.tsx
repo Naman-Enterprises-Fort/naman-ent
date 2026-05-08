@@ -1,14 +1,22 @@
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/auth';
+import type { CartView } from '@/lib/services/cart';
 import { getCategoryTree } from '@/lib/services/catalog';
 import { AccountMenu } from './account-menu';
+import { CartButton } from './cart/cart-button';
 import { Logo } from './logo';
 import { MobileMenu } from './mobile-menu';
 import { SearchBar } from './search-bar';
 
-export async function Header() {
+export async function Header({
+  cart,
+  cartCount = 0,
+}: {
+  cart?: CartView;
+  cartCount?: number;
+} = {}) {
   let nav: Awaited<ReturnType<typeof getCategoryTree>> = [];
   try {
     nav = await getCategoryTree();
@@ -52,11 +60,7 @@ export async function Header() {
           <div className="hidden md:inline-flex">
             <AccountMenu user={sessionUser} />
           </div>
-          <Button asChild variant="ghost" size="icon" aria-label="Cart">
-            <Link href="/cart" className="relative">
-              <ShoppingBag aria-hidden className="size-5" />
-            </Link>
-          </Button>
+          <CartButton initialCart={cart} initialCount={cartCount} />
         </div>
       </div>
 

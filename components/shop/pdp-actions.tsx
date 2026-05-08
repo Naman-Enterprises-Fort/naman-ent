@@ -1,10 +1,12 @@
 'use client';
 
-import { Heart, ShoppingBag, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Heart } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { discountPct, formatINR } from '@/lib/money';
+import { discountPct, formatINR, toPaise } from '@/lib/money';
+import { usePdpStore } from '@/lib/pdp-store';
+import { AddToCartButton } from './cart/add-to-cart-button';
 import { VariantSelector } from './variant-selector';
 
 type Variant = {
@@ -29,6 +31,18 @@ export function PdpActions({ variants }: { variants: Variant[] }) {
     () => variants.find((v) => v.id === selectedId) ?? initial,
     [selectedId, variants, initial],
   );
+  const setSelectedVariant = usePdpStore((s) => s.setSelectedVariant);
+  const resetPdp = usePdpStore((s) => s.reset);
+
+  useEffect(() => {
+    if (!selected) return;
+    setSelectedVariant({
+      id: selected.id,
+      pricePaise: toPaise(selected.price),
+      stock: selected.stock,
+    });
+    return resetPdp;
+  }, [selected, setSelectedVariant, resetPdp]);
 
   if (!selected) {
     return <p className="text-muted-foreground text-sm">No purchasable variant.</p>;
@@ -83,14 +97,15 @@ export function PdpActions({ variants }: { variants: Variant[] }) {
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          <Button size="lg" disabled={stock <= 0} className="gap-2">
-            <ShoppingBag aria-hidden className="size-4" />
-            Add to cart
-          </Button>
-          <Button size="lg" variant="outline" disabled={stock <= 0} className="gap-2">
-            <Zap aria-hidden className="size-4" />
-            Buy now
-          </Button>
+          <AddToCartButton variantId={selected.id} disabled={stock <= 0} fullWidth />
+          <AddToCartButton
+            variantId={selected.id}
+            disabled={stock <= 0}
+            variant="outline"
+            label="Buy now"
+            buyNow
+            fullWidth
+          />
         </div>
 
         <Button variant="ghost" size="sm" className="gap-2 self-start">
