@@ -101,11 +101,11 @@ The branch `feature/sprint-1-catalog` was merged into `develop` (commit `62e2f50
 
 ### B. Sprint 1 polish (Phase-1 admin CRUD, can land any time inside Phase 1)
 
-- [ ] **Admin product create/edit form** — server action + `react-hook-form` + `createProductSchema`/`updateProductSchema` (already in [lib/validators/product.ts](./lib/validators/product.ts)). Variant editor, image picker (Cloudinary upload widget), specs editor, category multi-select, brand picker. **(Brand + Category CRUD now done in `feature/sprint-1-catalog-polish`; Product CRUD is the remaining slice.)**
+- [x] ~~**Admin product create/edit form**~~ — done; `/admin/products/new` + `/admin/products/[id]` + the matching API routes, with variant diff-by-id, image + spec wholesale replacement, soft-archive, and on-demand revalidation of `catalog:product` + `/products/[slug]` PDP segment.
 - [x] ~~**Admin category create/edit form**~~ — done; `/admin/categories/new` + `/admin/categories/[id]` + the matching API routes, with parent picker + cycle prevention.
 - [x] ~~**Admin brand create/edit form**~~ — done; `/admin/brands/new` + `/admin/brands/[id]` + the matching API routes.
-- [ ] **POST/PATCH/DELETE `/api/admin/products`** — same Zod-backed shape as the new brand + category routes. Will need helper sub-routes for managing variants and images on existing products.
-- [x] ~~**On-demand revalidation**~~ — done for brand + category mutations (`revalidateTag(... , 'max')` + `revalidatePath` for Home / `/category` / `/category/[...slug]`). Product CRUD will extend this with `catalog:product` and `revalidatePath('/products/[slug]', 'page')`.
+- [x] ~~**POST/PATCH/DELETE `/api/admin/products`**~~ — done with the variant upsert-and-delete-with-FK-protection logic; inline editing of categories / images / specs (wholesale-replaced).
+- [x] ~~**On-demand revalidation**~~ — done across brand, category, and product mutations (`revalidateTag(... , 'max')` + `revalidatePath` for Home / `/category` / `/category/[...slug]` / `/products/[slug]` / `/search`).
 - [x] ~~**`app/sitemap.ts` + `app/robots.ts`**~~ — done in Sprint 5A.
 - [x] ~~**Header search suggest**~~ — done; debounced 150 ms fetch to `/api/search?mode=suggest`, ARIA combobox semantics, full keyboard nav.
 - [ ] **Hero image asset** — Home currently uses a CSS gradient placeholder. Either commission a hero illustration, or use a Cloudinary upload + the existing `cloudinaryUrl()` helper.
