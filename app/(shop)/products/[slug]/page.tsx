@@ -186,7 +186,11 @@ export default async function ProductPage({ params }: { params: Params }) {
         )}
       </div>
 
-      <StickyCta price={defaultVariant.price.toNumber()} stock={defaultVariant.stock} />
+      <StickyCta
+        variantId={defaultVariant.id}
+        price={defaultVariant.price.toNumber()}
+        stock={defaultVariant.stock}
+      />
     </>
   );
 }

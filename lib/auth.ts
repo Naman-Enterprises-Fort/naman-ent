@@ -106,12 +106,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       if (!user?.id) return;
-      // Lazy import to defuse the lib/auth ↔ lib/services/auth cycle.
-      const mod = await import('@/lib/services/auth');
+      // Lazy imports to defuse the lib/auth ↔ lib/services/* cycle.
+      const [{ recordLoginEvent }, { mergeGuestCartIntoUser }, { readCartSessionId }] =
+        await Promise.all([
+          import('@/lib/services/auth'),
+          import('@/lib/services/cart'),
+          import('@/lib/cart-cookie'),
+        ]);
       try {
-        await mod.recordLoginEvent({ userId: user.id, provider: account?.provider });
+        await recordLoginEvent({ userId: user.id, provider: account?.provider });
       } catch {
         // Audit failure must never block sign-in.
+      }
+      try {
+        const sessionId = await readCartSessionId();
+        await mergeGuestCartIntoUser({ userId: user.id, sessionId });
+      } catch {
+        // Cart merge must never block sign-in.
       }
     },
   },

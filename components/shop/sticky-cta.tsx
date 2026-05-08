@@ -1,11 +1,27 @@
 'use client';
 
-import { ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { formatINR } from '@/lib/money';
+import { formatINR, fromPaise, toPaise } from '@/lib/money';
+import { usePdpStore } from '@/lib/pdp-store';
+import { AddToCartButton } from './cart/add-to-cart-button';
 
-export function StickyCta({ price, stock }: { price: number; stock: number }) {
-  const out = stock <= 0;
+export function StickyCta({
+  variantId,
+  price,
+  stock,
+}: {
+  variantId: string;
+  price: number;
+  stock: number;
+}) {
+  const storeVariantId = usePdpStore((s) => s.selectedVariantId);
+  const storePricePaise = usePdpStore((s) => s.selectedPricePaise);
+  const storeStock = usePdpStore((s) => s.selectedStock);
+
+  const activeVariantId = storeVariantId ?? variantId;
+  const activePricePaise = storePricePaise ?? toPaise(price);
+  const activeStock = storeStock ?? stock;
+
+  const out = activeStock <= 0;
   return (
     <div
       className="fixed inset-x-0 bottom-[60px] z-30 border-t bg-background/95 px-4 py-3 backdrop-blur md:hidden"
@@ -13,17 +29,16 @@ export function StickyCta({ price, stock }: { price: number; stock: number }) {
     >
       <div className="flex items-center gap-3">
         <div className="flex flex-col">
-          <span className="font-semibold text-base">{formatINR(price)}</span>
+          <span className="font-semibold text-base">{formatINR(fromPaise(activePricePaise))}</span>
           {out ? (
             <span className="text-[11px] text-destructive">Out of stock</span>
           ) : (
             <span className="text-[11px] text-emerald-700 dark:text-emerald-400">In stock</span>
           )}
         </div>
-        <Button className="ml-auto gap-2" size="sm" disabled={out}>
-          <ShoppingBag aria-hidden className="size-4" />
-          Add to cart
-        </Button>
+        <div className="ml-auto">
+          <AddToCartButton variantId={activeVariantId} disabled={out} size="sm" />
+        </div>
       </div>
     </div>
   );
