@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    "prisma.prisma",
+    "esbenp.prettier-vscode",
+    "usernamehw.errorlens",
+    "yoavbls.pretty-ts-errors"
+  ],
+  "unwantedRecommendations": ["dbaeumer.vscode-eslint"]
+}
