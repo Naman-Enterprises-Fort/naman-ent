@@ -85,12 +85,51 @@ export function itemListJsonLd(name: string, urls: string[]) {
   };
 }
 
-export function organizationJsonLd(opts: { name: string; url: string; logo?: string }) {
+export function organizationJsonLd(opts: {
+  name: string;
+  url: string;
+  logo?: string;
+  sameAs?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+}) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: opts.name,
     url: opts.url,
     ...(opts.logo && { logo: opts.logo }),
+    ...(opts.sameAs && opts.sameAs.length > 0 && { sameAs: opts.sameAs }),
+    ...(opts.contactEmail || opts.contactPhone
+      ? {
+          contactPoint: [
+            {
+              '@type': 'ContactPoint',
+              contactType: 'customer support',
+              ...(opts.contactEmail && { email: opts.contactEmail }),
+              ...(opts.contactPhone && { telephone: opts.contactPhone }),
+              areaServed: 'IN',
+              availableLanguage: ['en', 'hi'],
+            },
+          ],
+        }
+      : {}),
+  };
+}
+
+export function websiteJsonLd(opts: { name: string; url: string }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: opts.name,
+    url: opts.url,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${opts.url.replace(/\/$/, '')}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   };
 }

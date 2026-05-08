@@ -21,11 +21,11 @@ const sections = [
     ],
   },
   {
-    title: 'Company',
+    title: 'Legal',
     links: [
-      { label: 'About', href: '/about' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms', href: '/terms' },
+      { label: 'Cookies', href: '/cookies' },
       { label: 'Cancellation', href: '/cancellation' },
     ],
   },
