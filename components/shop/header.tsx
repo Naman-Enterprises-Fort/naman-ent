@@ -48,7 +48,7 @@ export async function Header({
         </nav>
 
         <div className="ml-auto hidden max-w-md flex-1 md:block">
-          <SearchBar size="sm" />
+          <SearchBar size="sm" suggest />
         </div>
 
         <div className="flex items-center gap-1">
