@@ -1,7 +1,9 @@
-import { Heart, ShoppingBag, User } from 'lucide-react';
+import { Heart, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/auth';
 import { getCategoryTree } from '@/lib/services/catalog';
+import { AccountMenu } from './account-menu';
 import { Logo } from './logo';
 import { MobileMenu } from './mobile-menu';
 import { SearchBar } from './search-bar';
@@ -13,6 +15,10 @@ export async function Header() {
   } catch {
     // DB not yet provisioned — gracefully degrade to logo + search.
   }
+  const session = await auth().catch(() => null);
+  const sessionUser = session?.user
+    ? { name: session.user.name, email: session.user.email, image: session.user.image }
+    : null;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -43,11 +49,9 @@ export async function Header() {
               <Heart aria-hidden className="size-5" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
-            <Link href="/account" aria-label="Account">
-              <User aria-hidden className="size-5" />
-            </Link>
-          </Button>
+          <div className="hidden md:inline-flex">
+            <AccountMenu user={sessionUser} />
+          </div>
           <Button asChild variant="ghost" size="icon" aria-label="Cart">
             <Link href="/cart" className="relative">
               <ShoppingBag aria-hidden className="size-5" />

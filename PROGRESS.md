@@ -92,75 +92,72 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 ## Last Session Summary
 
 **Date:** 2026-05-08
-**Sprint:** Sprint 1 — Catalog (Home, PLP, PDP)
-**Status:** CODE COMPLETE — pending DB/env wiring + visual QA before merge
+**Sprint:** Sprint 2 — Auth + Account
+**Status:** CODE COMPLETE — pending DB migration + Resend/Upstash creds + visual QA before merge
 
 ### Done this session
 
-- **Shadcn/UI primitives** — hand-written New York-style components in [components/ui](./components/ui/): `button`, `card`, `badge`, `skeleton`, `input`, `label`, `separator`, `sheet`, `dropdown-menu`, `accordion`, `checkbox`, `radio-group`. Radix peer deps installed (`@radix-ui/react-{slot,dialog,dropdown-menu,label,separator,accordion,checkbox,radio-group,tooltip,select}`).
-- **Money helpers** — [lib/money.ts](./lib/money.ts) with `toPaise`/`fromPaise`/`formatINR`/`formatINRWithPaise`/`formatNumberIN`/`discountPct`/`discountAmount`. Indian numbering grouping via `Intl.NumberFormat('en-IN')`. Accepts `Decimal | number | string` via duck-typed `toString`/`toNumber` (avoids the unstable `@prisma/client/runtime/library` import path).
-- **Cloudinary loader** — [lib/cloudinary.ts](./lib/cloudinary.ts) `cloudinaryLoader` for `next/image` (`f_auto,q_auto,w_*,c_limit`); plus `cloudinaryUrl` for OG images / structured data. Hardened against bare public IDs, full Cloudinary URLs, and arbitrary HTTPS placeholders.
-- **SEO helpers** — [lib/utils/seo.ts](./lib/utils/seo.ts) builds `Product`, `BreadcrumbList`, `ItemList`, `Organization` JSON-LD. Wired on Home (Org + ItemList), PLP (BreadcrumbList), PDP (Product + BreadcrumbList).
-- **Slug helper** — [lib/utils/slug.ts](./lib/utils/slug.ts) NFKD-normalised, 80-char-bounded slug builder for admin forms.
-- **`safe()` helper** — [lib/utils/safe.ts](./lib/utils/safe.ts) shared try/fallback wrapper used by every RSC page so the public catalog renders empty-state UI instead of HTTP 500 when the DB is unreachable.
-- **Zod validators** — [lib/validators/](./lib/validators/) `common` (cuid, slug, pincode, gstin, phone, paise, page/perPage), `category`, `brand`, `product` (with `superRefine` invariant checks: only one default variant, only one primary image, price ≤ MRP per variant), `search` (filters + suggest).
-- **Catalog services** — [lib/services/catalog.ts](./lib/services/catalog.ts) `getCategoryTree` / `getCategoryBySlug` / `getCategoryBreadcrumb` / `getCategoryDescendantIds` / `listProducts` / `getBrandFacets` / `getProductBySlug` / `getRelatedProducts` / `getTrendingProducts` / `getFeaturedCategories` / `getActiveBrands` / `searchProducts` / `searchSuggest` / `getBrandBySlug`. Home/category-tree/brand strip wrapped in `unstable_cache` with 300/600s revalidate and tagged for invalidation. Selections defined as `satisfies Prisma.ProductSelect` so generated Prisma types pass through cleanly.
-- **Phase 1 search** — pg_trgm-only (no tsvector yet). [prisma/migrations/manual/_search.sql](./prisma/migrations/manual/_search.sql) creates `pg_trgm` extension + GIN trigram indexes on `Product.name`, `Brand.name`, plus a `LOWER(shortDesc)` btree. `searchProducts` / `searchSuggest` use `prisma.$queryRaw` with `Prisma.sql` parameterised templates. Covers ~5k SKUs at p95 < 500ms; graduates to Algolia in Phase 2 per SRS Appendix D.
-- **API routes** — `GET /api/search` (with `?mode=suggest`), `GET /api/products` (PLP filters), `GET /api/products/[id]` (cuid OR slug). All inputs Zod-validated before any business logic.
-- **Shop layout** — [app/(shop)/layout.tsx](./app/(shop)/layout.tsx) wraps every shop route with [Header](./components/shop/header.tsx) (sticky, backdrop-blur, logo, primary nav from category tree, desktop search, account/cart icons), [Footer](./components/shop/footer.tsx) (3-column links + brand promise), and [MobileBottomNav](./components/shop/mobile-bottom-nav.tsx) (5-up Home/Categories/Search/Cart/Account, safe-area aware). [MobileMenu](./components/shop/mobile-menu.tsx) is a left-slide Sheet showing the full category tree on mobile.
-- **Catalog UI components** — [ProductCard](./components/shop/product-card.tsx) (responsive square image, brand kicker, name clamp, price + MRP strikethrough + discount badge + sold-out badge), [ProductGrid](./components/shop/product-grid.tsx), [Breadcrumbs](./components/shop/breadcrumbs.tsx) (semantic `nav`+`ol`, last item is `aria-current`), [Pagination](./components/shop/pagination.tsx) (windowed, prev/next, ellipsis), [SortMenu](./components/shop/sort-menu.tsx) (DropdownMenu, useTransition, URL-driven), [FilterSidebar](./components/shop/filters/filter-sidebar.tsx) (in-stock toggle, price range, brand checkboxes with counts; URL-driven, useTransition), [MobileFilterSheet](./components/shop/filters/mobile-filter-sheet.tsx) (left-slide Sheet wrapping the same FilterSidebar). PDP-specific: [ProductGallery](./components/shop/product-gallery.tsx) (thumb rail flips between row/col layout, click-to-swap main image, priority on hero), [VariantSelector](./components/shop/variant-selector.tsx) (groups variants by attribute axes — color/storage/RAM/etc., disables out-of-stock pills), [PdpActions](./components/shop/pdp-actions.tsx) (price + MRP + discount + stock state + add-to-cart + buy-now + save-to-wishlist), [PincodeCheck](./components/shop/pincode-check.tsx) (calls `https://api.postalpincode.in` for Phase 1 — TODO swaps to internal `/api/serviceability` in Sprint 4), [SpecsAccordion](./components/shop/specs-accordion.tsx) (multi-open accordion grouped by spec group), [StickyCta](./components/shop/sticky-cta.tsx) (mobile-only sticky band above the bottom nav).
-- **Public pages**:
-  - **Home** ([app/(shop)/page.tsx](./app/(shop)/page.tsx)) — RSC, `revalidate = 300`. Hero (text + placeholder media), 8 featured categories, trending products grid, brand strip. Org + ItemList JSON-LD.
-  - **All categories** ([app/(shop)/category/page.tsx](./app/(shop)/category/page.tsx)) — RSC, `revalidate = 600`. Tree + breadcrumb.
-  - **Category PLP** ([app/(shop)/category/\[...slug\]/page.tsx](./app/(shop)/category/[...slug]/page.tsx)) — RSC, `revalidate = 300`. Catch-all slug, walks category breadcrumb, scopes products to category + descendants, filter sidebar (desktop sticky, mobile sheet), sort menu, paginated grid. BreadcrumbList JSON-LD. Per-category brand facets.
-  - **PDP** ([app/(shop)/products/\[slug\]/page.tsx](./app/(shop)/products/[slug]/page.tsx)) — RSC, `revalidate = 3600`. Gallery + variant selector + add-to-cart + pincode + warranty + box contents + description + specs accordion + related strip. Sticky mobile CTA. Product + BreadcrumbList JSON-LD with `availability` derived from the default variant's stock.
-  - **Search** ([app/(shop)/search/page.tsx](./app/(shop)/search/page.tsx)) — `dynamic = 'force-dynamic'`. `?q=...` runs `searchProducts` (pg_trgm + ILIKE). `robots: { index: false }`. Empty-query state, no-results state, results grid.
-- **Loading / not-found** — [app/(shop)/loading.tsx](./app/(shop)/loading.tsx) (8-tile grid skeleton), [app/(shop)/products/\[slug\]/loading.tsx](./app/(shop)/products/[slug]/loading.tsx) (PDP skeleton), [app/(shop)/products/\[slug\]/not-found.tsx](./app/(shop)/products/[slug]/not-found.tsx), [app/(shop)/category/\[...slug\]/not-found.tsx](./app/(shop)/category/[...slug]/not-found.tsx).
-- **Admin scaffolding** (basic, read-only) — [app/(admin)/admin/layout.tsx](./app/(admin)/admin/layout.tsx) (sidebar nav + content), updated [dashboard](./app/(admin)/admin/dashboard/page.tsx) with live counts (products/categories/brands/orders/customers), and read-only tables for [products](./app/(admin)/admin/products/page.tsx), [categories](./app/(admin)/admin/categories/page.tsx), [brands](./app/(admin)/admin/brands/page.tsx). Full CRUD UI deferred to Sprint 1 polish.
-- **Seed data** — [prisma/seed.ts](./prisma/seed.ts) idempotent upserts: 6 categories (smartphones / laptops / audio / wearables / smart-home / gaming), 6 brands (Apple, Samsung, Sony, OnePlus, Boat, Dell), 8 products with variants/specs and a placeholder image. Wired via `pnpm db:seed` (`tsx prisma/seed.ts`) and `prisma.config.ts` (`migrations.seed`). `tsx` added as dev dep.
+- **Schema additions** — [prisma/schema.prisma](./prisma/schema.prisma) adds `User.tokenVersion` (revoke-all support), `UserLoginEvent` (sign-in audit driving "active sessions" UI; enum `LOGIN | LOGOUT | REVOKE_ALL`), and `PasswordResetToken` (15-min one-shot tokens, SHA-256 hashed at rest). Email-verification reuses Auth.js's standard `VerificationToken` table with a `verify:<email>` identifier prefix.
+- **Upstash + Resend wrappers** — [lib/redis.ts](./lib/redis.ts) provides per-flow sliding-window limiters (`loginLimiter` 5/min, `registerLimiter` 5/h, `otpLimiter` 3/min, `passwordResetLimiter` 3/h, `verifyEmailLimiter` 5/h). Falls back to a permissive no-op when `UPSTASH_REDIS_REST_*` is unset (local dev). [lib/resend.ts](./lib/resend.ts) wraps the Resend SDK with a dev fallback that logs the rendered plain-text email to stdout when `RESEND_API_KEY` is missing.
+- **Auth session helpers** — [lib/services/auth.ts](./lib/services/auth.ts) exposes `getSession` / `requireSession` / `requireFreshSession` (compares JWT `tokenVersion` to DB) / `requireRole(...UserRole[])` / `recordLoginEvent` / `revokeAllSessions`. Throws a typed `AuthError` (`401` / `403`) that route handlers convert to JSON error responses. Defuses the lib/auth ↔ lib/services/auth import cycle by lazy-loading from `events.signIn`.
+- **Token issuance helpers** — [lib/services/auth-tokens.ts](./lib/services/auth-tokens.ts) issues + consumes verify-email tokens (24h, hashed SHA-256 in `VerificationToken.token`) and password-reset tokens (15min, hashed in `PasswordResetToken.tokenHash`). Random 32-byte secrets are emailed; only the hash hits the DB.
+- **Address service** — [lib/services/addresses.ts](./lib/services/addresses.ts) `listAddresses` / `getAddress` / `createAddress` / `updateAddress` / `deleteAddress` / `setDefaultAddress`. Single-default-per-user invariant enforced inside a Prisma transaction (clears old default before flipping new). Deleting a default auto-promotes the next-most-recent address.
+- **NextAuth wiring** — [lib/auth.ts](./lib/auth.ts) updated: `tokenVersion` propagated through the JWT and Session callbacks; `update` trigger re-pulls fresh `tokenVersion` and `role` from DB; `events.signIn` records a `UserLoginEvent` with provider + IP + UA via `headers()` from `next/headers`. Credentials provider now also rejects deleted users (in addition to blocked).
+- **Zod validators** — [lib/validators/auth.ts](./lib/validators/auth.ts) (`registerSchema`, `loginSchema`, `forgotPasswordSchema`, `resetPasswordSchema`, `changePasswordSchema`, `verifyEmailSchema`, `resendVerificationSchema`, `profileSchema`; `passwordSchema` requires ≥8 chars + letter + digit per NIST 800-63B) and [lib/validators/account.ts](./lib/validators/account.ts) (`createAddressSchema`, `updateAddressSchema`).
+- **Email templates** — [emails/_layout.tsx](./emails/_layout.tsx) (shared brand-consistent shell), [verify-email.tsx](./emails/verify-email.tsx), [password-reset.tsx](./emails/password-reset.tsx), [welcome.tsx](./emails/welcome.tsx). Inline-styled (email-client-safe), dark-mode-aware via slate palette, Geist-style sans-serif fallback.
+- **Auth API routes** — `POST /api/auth/register` (rate-limited, hashes with bcrypt rounds=12, creates verify-email token, sends email; rejects ANY existing email — even OAuth-only — to prevent takeover via password-set), `GET /api/auth/verify-email?token=...` (consumes token, marks `emailVerified`, sends welcome email, redirects to `/verify-email?status=success|expired|invalid`), `POST /api/auth/resend-verification` (rate-limited, account-enumeration-safe), `POST /api/auth/forgot-password` (rate-limited, account-enumeration-safe, issues 15-min token), `POST /api/auth/reset-password` (consumes token, bumps tokenVersion → kills all other devices, marks email verified — proof of inbox control).
+- **Account API routes** — `PATCH /api/account/profile` (name + phone; auto-clears phoneVerified on change; rejects phones already linked to another account), `GET /api/account/sessions` (last 20 LOGIN events for active-sessions UI), `POST /api/account/sessions/revoke` (bumps tokenVersion + writes REVOKE_ALL audit row), `POST /api/account/password` (re-auths via current password, hashes new, bumps tokenVersion), `GET/POST /api/account/addresses`, `PATCH/DELETE/PUT /api/account/addresses/[id]` (PUT sets default).
+- **Auth pages** — [app/(auth)/layout.tsx](./app/(auth)/layout.tsx) (centered card on slate-50, redirects to /account if already signed in), [/login](./app/(auth)/login/page.tsx) (LoginForm with credentials + Google OAuth + "verified" success banner), [/register](./app/(auth)/register/page.tsx) (RegisterForm with terms checkbox + post-submit "check inbox" success state), [/forgot-password](./app/(auth)/forgot-password/page.tsx), [/reset-password](./app/(auth)/reset-password/page.tsx) (server reads `?token=`, redirects to /forgot-password if missing), [/verify-email](./app/(auth)/verify-email/page.tsx) (renders success/expired/invalid/pending states; resend form on the failure paths). Shared [AuthCard](./components/auth/auth-card.tsx) + `FormError` / `FormSuccess` / `FieldError` primitives.
+- **Account dashboard** — [layout](./app/(account)/account/layout.tsx) wraps every account route with the shop Header/Footer/MobileBottomNav and a 2-column grid (sidebar + content). [Sidebar](./components/account/account-sidebar.tsx) is the only client island: `usePathname()` for active highlighting; horizontal-scroll pill nav on mobile, vertical column on desktop, with sign-out button at the bottom. Pages: [/account](./app/(account)/account/page.tsx) overview (greeting, email-verify nudge, 4 quick-action cards), [/account/profile](./app/(account)/account/profile/page.tsx), [/account/security](./app/(account)/account/security/page.tsx) (change-password form gated on having a password set + active sessions list with sign-out-everywhere), [/account/addresses](./app/(account)/account/addresses/page.tsx) (list with default/edit/remove + inline add+edit forms), [/account/orders](./app/(account)/account/orders/page.tsx) (Sprint-4-aware empty state).
+- **Address form** — [components/account/address-form.tsx](./components/account/address-form.tsx) integrates India Post pincode autocomplete: when 6 valid digits land in the field it calls `https://api.postalpincode.in/pincode/<PIN>` and auto-fills city + state; spinner during the lookup; `AbortController` on dependent re-runs.
+- **Header account dropdown** — [components/shop/account-menu.tsx](./components/shop/account-menu.tsx) is a client island that switches between a "sign in" icon link (signed-out) and a Radix DropdownMenu showing the user's name/email + links to overview/orders/addresses/security and a destructive sign-out item (signed-in). [Header](./components/shop/header.tsx) is now async: pulls the session via `auth()` once and passes the projected user prop to the dropdown.
 
 ### Verification
 
 | Command | Result |
 |---|---|
 | `pnpm typecheck` (`tsc --noEmit`) | ✅ exit 0, zero errors |
-| `pnpm lint` (`biome lint .`) | ✅ exit 0, zero errors (2 nursery `noArrayIndexKey` warnings on intentionally-static skeleton/pagination keys — accepted) |
-| `pnpm prisma validate` | ✅ schema unchanged from Sprint 0; still valid |
-| `pnpm dev` | ⏸️ not booted this session — no `.env.local` yet. Pages use `safe()` wrappers so they should render empty-state without DB; visual QA pending DB connect |
+| `pnpm lint` (`biome lint .`) | ✅ exit 0, zero new warnings (the 2 pre-existing nursery `noArrayIndexKey` warnings on Sprint-1 breadcrumbs/pagination remain accepted) |
+| `pnpm prisma format` + `prisma validate` + `prisma generate` | ✅ schema valid, client regenerated |
+| `pnpm dev` | ⏸️ not booted — local Neon + AUTH_SECRET still unprovisioned (Sprint 1 carry-over). Auth flows have dev-mode fallbacks (`lib/redis.ts` no-op, `lib/resend.ts` console-log) so the dev server should boot without Upstash/Resend creds. |
 
-### Up next — to take Sprint 1 from code-complete to merged
+### Up next — to take Sprint 2 from code-complete to merged
 
-1. Create `.env.local` from `.env.example` and fill in `DATABASE_URL` + `DIRECT_URL` (Neon free tier).
-2. `git init` + `pnpm prepare` if not already done, so Husky activates.
-3. `pnpm prisma migrate dev --name init` — first migration against the schema.
-4. `psql "$DIRECT_URL" -f prisma/migrations/manual/_search.sql` — adds pg_trgm + indexes used by search.
-5. `pnpm db:seed` — populates the 6 categories / 6 brands / 8 products from the seed.
-6. `pnpm dev` — visually QA Home / `/category/smartphones` / `/products/iphone-15-pro` / `/search?q=iphone` end-to-end on mobile + desktop.
-7. Lighthouse mobile pass: Perf ≥ 85, A11y ≥ 95, SEO ≥ 95 on Home / PLP / PDP.
-8. Tick off the remaining Sprint 1 acceptance bullets below, flip the sprint to DONE, open the PR per the per-sprint workflow at the top of this file.
+1. **Add a migration** — `pnpm prisma migrate dev --name sprint-2-auth` to land `tokenVersion`, `UserLoginEvent`, `UserLoginEventKind`, `PasswordResetToken`. Sprint 1's verification is also pending — same `pnpm prisma migrate dev --name init` once `.env.local` is filled.
+2. **`pnpm dev` smoke** — register a new account → check stdout for the `[email:dev]` verify link → click it → land on `/verify-email?status=success` → sign in → verify the account dropdown, profile edit, address create with pincode autofill (e.g. 110001 → New Delhi / Delhi), security page change-password + sessions list + revoke-all.
+3. **`pnpm build`** — first production-build pass for Sprint 2; some auth routes use `runtime = 'nodejs'` (bcrypt + crypto), confirm they survive build.
+4. **(Optional) Provision Resend test sender + Upstash REST creds** so the email actually sends and rate-limit gates engage. Both are SRS §13 services and have free tiers; not strictly required for Sprint 2 acceptance to pass locally (dev fallbacks are sufficient).
+5. Tick the Sprint 2 acceptance bullets below, flip status to `DONE`, open the PR per the per-sprint workflow at the top of this file.
 
-**Sprint 1 polish backlog** (deferred from this session, still inside Sprint 1):
-- Admin product/category/brand **create/edit forms** (server actions + RHF + Zod). Read-only tables landed; mutations did not.
-- POST/PATCH/DELETE `/api/admin/{products,categories,brands}` routes (Zod validators are written, server actions can reuse them).
-- `app/sitemap.ts` + `app/robots.ts` (Sprint 5 also touches these — earlier is fine).
-- Search suggest in the header (debounced fetch to `/api/search?mode=suggest`).
-- Hero image asset (currently a CSS gradient placeholder).
-- Cloudinary credentials on Vercel preview.
+**Sprint 2 polish backlog** (deferred, out of Sprint 2's critical path):
+- **Phone + OTP signup** (SRS §6.1.1) — blocked on MSG91 DLT registration (≈ 1 week lead time). The `otpLimiter` is already wired so the route can drop in once the SDK is provisioned.
+- **2FA setup** (SRS §6.11 "Security: 2FA setup") — Phase-2 polish, not in Sprint 2 acceptance bullets.
+- **Login history vs active-sessions distinction** — Phase 1 collapses both into the same `UserLoginEvent` audit table (which is enough to satisfy "list active, revoke all"). True per-session revoke would require minting a per-session `jti` claim and a denylist; deferred until checkout-grade stakes warrant it.
+- **Real Resend sender + DKIM/SPF setup** on the production domain.
+- **Cloudflare Turnstile** on `/register` and `/forgot-password` (env vars are in place) — Phase 2 conversion polish.
+- **Session refresh on the current device after `tokenVersion` bump** — currently the change-password and revoke-all flows force a full sign-out via `next-auth/react`'s `signOut()`. A smoother flow would call `useSession().update()` to refresh the JWT in place; deferred for UX iteration.
 
-### Blockers
+### Blockers carried over from Sprint 1
 
-- DB not yet provisioned locally. Public catalog pages all degrade gracefully via `safe()` so the app boots without a DB, but real visual + Lighthouse verification is blocked on Neon connection.
-- MSG91 (DLT) and Razorpay (KYC) flows still need to be started — not on Sprint 1's critical path but Sprint 2 (OTP) and Sprint 4 (checkout) will block on them.
+- DB still not provisioned locally; same Neon block as Sprint 1.
+- MSG91 DLT and Razorpay KYC — same as Sprint 1's blocker note.
 
 ### Decisions made this session
 
-- **Search starts at pg_trgm** (no generated tsvector column in Phase 1). Reason: schema already shipped, generated columns require extra migration discipline, and trigram alone covers typo-tolerant prefix/substring search up to ~5k SKUs cleanly. Graduate to tsvector or Algolia when p95 > 500ms.
-- **Manual SQL bootstrap for pg_trgm** (`prisma/migrations/manual/_search.sql`) rather than `previewFeatures = ["postgresqlExtensions"]`. Lower coupling to Prisma's preview feature lifecycle. The script is idempotent (`CREATE EXTENSION IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`) so re-runs are safe.
-- **Accent colour: deferred (slate neutral only).** SRS leaves accent "TBD per brand kit." Sprint 1 ships entirely on the slate palette + semantic colours (success/warning/destructive/info) — no chromatic accent decoration. Pick the accent during Sprint 1 polish once a logo/wordmark exists.
-- **Pincode lookup hits India Post directly from the client.** Reason: Phase 1 has no `/api/serviceability` yet (Sprint 4). India Post's endpoint is public, doesn't need an API key, and CORS-allows browsers. Marked `TODO(integration)` in `pincode-check.tsx`.
-- **Money helpers stop importing `Decimal`** from `@prisma/client/runtime/library`. The path moved between Prisma 6 and 7 betas and we hit a TS module-resolution failure. Helpers now accept any `{ toString(): string; toNumber?(): number }` — Prisma's Decimal already satisfies that, plus plain numbers and strings. Future Decimal arithmetic that genuinely needs the class can `import { Prisma } from '@prisma/client'` and use `Prisma.Decimal`.
-- **Validator `superRefine` invariants extracted** (`productInvariants` helper). Zod 4's `_def.schema` API is gone, so we can't `partial()` on a refined schema. Splitting the core object schema from the refinement lets us produce both `createProductSchema` (full + refined) and `updateProductSchema` (partial + refined skip when relevant fields absent) cleanly.
-- **Pages wrapped in a shared `safe()` fallback** so the public site degrades to empty-state UI instead of HTTP 500 when the DB is unreachable. Kept narrow — only catches read paths and only at the page boundary; service code still throws.
+- **JWT strategy + `User.tokenVersion`** for "log out everywhere." Every JWT carries a `tokenVersion` claim; bumping `User.tokenVersion` invalidates every minted JWT on its next call into `requireFreshSession()` (the helper used by every account/checkout route handler and server action). Catalog reads stay stateless. This is the standard pattern when you want JWT speed *and* a kill switch.
+- **Email verification on top of Auth.js's `VerificationToken` table** with a `verify:<email>` identifier prefix and SHA-256-hashed token. Avoids adding another model when a perfectly-good standard one exists. Reset-password gets its own model (`PasswordResetToken`) because the lifecycle is different (15min, single-use, has `usedAt`).
+- **Account-enumeration safety on every public auth surface.** `/forgot-password`, `/resend-verification`, and even `/register` either return identical responses regardless of account existence or — for register — refuse any pre-existing email so an OAuth-only account can't have a password set on it without inbox proof.
+- **Always reject register if email exists, including OAuth-only accounts.** Letting a guest set a password on a Google-only account would be account takeover; legitimate owners use forgot-password (which proves inbox control) to set their first password instead.
+- **Reset-password also marks `emailVerified`.** Receiving the reset email already proves inbox control; making the user click *another* verify link adds friction with no extra security.
+- **Phase-1 rate-limit gate is permissive** when Upstash creds aren't set. Document the gate as "soft" in `lib/redis.ts` so the production deployment checklist surfaces it (Sprint 5 polish). Local dev avoids needing a Redis sidecar.
+- **Resend dev fallback logs to stdout** rather than failing closed. Keeps the auth flows usable end-to-end during development without a Resend sandbox subscription. Production must have `RESEND_API_KEY` set.
+- **Single-default-address invariant inside a Prisma transaction.** Setting one address as default flips off any prior default in the same transaction. Deleting the current default auto-promotes the next-most-recent address. Avoids a "no defaults exist" footgun at checkout.
+- **India Post pincode autocomplete on the address form** matches the Sprint 1 PDP-pincode pattern: hits the public endpoint client-side. Same `TODO(integration)` swap to `/api/serviceability` in Sprint 4.
+- **Account dashboard sidebar is the only client island**; pages are RSC. Active-route highlighting needs `usePathname()` so the sidebar must be a client component, but the layout, pages, and data-fetching all stay server-side.
+
+### Previous sessions
+
+- **Sprint 1 — Catalog (Home, PLP, PDP)** shipped Sprint 1's RSC catalog (Home + PLP + PDP + Search), pg_trgm-based search, Cloudinary loader, money helpers, SEO JSON-LD, Shadcn primitives, mobile bottom nav, and read-only admin tables. See commit [`62e2f50`](https://github.com/anthropics/) and the Decisions Log below for the architectural choices that landed.
 
 ---
 
@@ -190,7 +187,7 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 ---
 
 ### Sprint 1 — Catalog (Home, PLP, PDP)
-**Status:** IN_PROGRESS — code complete, awaiting DB wiring + visual QA + Lighthouse pass
+**Status:** MERGED into `develop` (commit `62e2f50`) — verification items (Neon migration, Lighthouse, admin CRUD polish) tracked in [PENDING.md](./PENDING.md)
 **Relevant SRS:** §6.2, §6.3 (Phase-1 Postgres search), §10, §11
 
 - [x] Shadcn/UI components needed for Sprint 1 — hand-written into `components/ui/` (button, card, input, label, sheet, dropdown-menu, skeleton, badge, separator, accordion, checkbox, radio-group). Radix peer deps installed.
@@ -210,18 +207,18 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 ---
 
 ### Sprint 2 — Auth + Account
-**Status:** NOT_STARTED
+**Status:** IN_PROGRESS — code complete, awaiting DB migration + dev-server smoke before PR
 **Relevant SRS:** §6.1, §6.11
 
-- [ ] Email + password registration (bcrypt, complexity rules) with email verification (Resend)
-- [ ] Login (email/password + Google OAuth) — wire up the Credentials provider already scaffolded in `lib/auth.ts`
-- [ ] Forgot password (15-min token)
-- [ ] Account dashboard shell: profile, addresses, orders (placeholder), security
-- [ ] Address CRUD (label, default flag, pincode autocomplete via India Post API)
-- [ ] Rate limiting on login + OTP (Upstash Redis sliding window: 5/min login, 3/min OTP)
-- [ ] Session list + revoke (Phase 1 minimum: list active, revoke all)
+- [x] Email + password registration (bcrypt, complexity rules) with email verification (Resend) — `/api/auth/register` + `/api/auth/verify-email` + `/api/auth/resend-verification`; React Email templates in `/emails`. Resend has a dev-mode console-log fallback when `RESEND_API_KEY` is unset.
+- [x] Login (email/password + Google OAuth) — Credentials + Google providers already scaffolded in `lib/auth.ts`; `/login` page now wired with the `LoginForm` client island and a `verified=1` success banner from the verify-email redirect.
+- [x] Forgot password (15-min token) — `/api/auth/forgot-password` issues SHA-256-hashed `PasswordResetToken`s, `/api/auth/reset-password` consumes them, bumps `tokenVersion`, marks `emailVerified` (proof of inbox control). UI: `/forgot-password` + `/reset-password?token=...`.
+- [x] Account dashboard shell: profile, addresses, orders (placeholder), security — sidebar + 2-column layout in `app/(account)/account/layout.tsx`; pages at `/account`, `/account/profile`, `/account/orders`, `/account/addresses`, `/account/security`.
+- [x] Address CRUD (label, default flag, pincode autocomplete via India Post API) — `/api/account/addresses` + `/[id]` (PUT sets default), `lib/services/addresses.ts` enforces single-default invariant inside a Prisma transaction. India Post lookup auto-fills city/state on the client.
+- [x] Rate limiting on login + OTP (Upstash Redis sliding window) — `lib/redis.ts` exposes `loginLimiter` 5/min, `registerLimiter` 5/h, `otpLimiter` 3/min, `passwordResetLimiter` 3/h, `verifyEmailLimiter` 5/h. Permissive no-op fallback when Upstash creds are unset; OTP route blocked on MSG91 DLT.
+- [x] Session list + revoke (Phase 1 minimum: list active, revoke all) — `UserLoginEvent` audit table records every successful sign-in via Auth.js `events.signIn`. `/api/account/sessions` lists last 20, `/api/account/sessions/revoke` bumps `User.tokenVersion` (kills every JWT on next sensitive call). UI on `/account/security`.
 
-**Acceptance:** User can sign up, verify email, log in via password or Google, manage addresses, see empty orders list.
+**Acceptance:** User can sign up, verify email, log in via password or Google, manage addresses, see empty orders list. ✅ Code path complete; final tick on `IN_PROGRESS → DONE` after dev-server smoke + `pnpm build` against a wired DB.
 
 ---
 
@@ -306,3 +303,13 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 | 2026-05-08 | **Pincode lookup hits India Post directly from the client** | Phase 1 has no `/api/serviceability` (Sprint 4). The India Post endpoint is public, doesn't need an API key, and CORS-allows browsers. Marked `TODO(integration)` so Sprint 4 can swap to the internal serviceability route. |
 | 2026-05-08 | **Public RSC pages use a shared `safe()` fallback** so the catalog renders empty-state UI instead of HTTP 500 when the DB is unreachable | Lets the dev server boot and the marketing shell stay reviewable before Neon credentials exist. Kept narrow — only catches read paths at the page boundary; service code still throws so failures surface in logs. |
 | 2026-05-08 | **Sprint 1 ships on slate-only**, no chromatic accent | SRS leaves accent "TBD per brand kit." Slate + semantic state colours (success/warning/destructive/info) are enough for clean Phase-1 polish. Pick the accent during Sprint 1 polish once a logo/wordmark exists. |
+| 2026-05-08 | **JWT strategy + `User.tokenVersion` for "log out everywhere"** | SRS §6.1.4 requires JWT-rotating sessions + revoke-all. Bumping `tokenVersion` invalidates every minted JWT on its next call into `requireFreshSession()` (used by every `/account/*` and `/checkout/*` handler). Catalog reads stay stateless; only writes pay the freshness check. |
+| 2026-05-08 | **Email-verification reuses Auth.js `VerificationToken`** with `verify:<email>` identifier prefix | The Auth.js standard table is already in the schema and the column shapes match. Avoids inventing a parallel model. SHA-256-hash the secret on disk so a DB leak doesn't expose live links. |
+| 2026-05-08 | **Password reset gets its own `PasswordResetToken` model** | Different lifecycle from email-verification: 15-min TTL, single-use (`usedAt`), per-user (`userId`). Mixing it with `VerificationToken` would smear two lifecycles together. |
+| 2026-05-08 | **Always reject register if email exists, including OAuth-only accounts** | Letting a guest set a password on a Google-only account would be account takeover (no inbox proof). Legitimate owners use forgot-password — which proves inbox control — to set their first password. |
+| 2026-05-08 | **Reset-password also sets `emailVerified`** | Receiving the reset email already proves inbox control; making the user click another verify link adds friction with no extra security. |
+| 2026-05-08 | **Account-enumeration safety on every public auth surface** | `/forgot-password` and `/resend-verification` always respond 200 with the same message regardless of whether the email exists. `/register` returns the same generic conflict whether the prior account had a password or used Google. |
+| 2026-05-08 | **Upstash Ratelimit is permissive when creds are missing** | Local dev avoids the Redis sidecar requirement. Production must set `UPSTASH_REDIS_REST_*` or the gate vanishes — surfaced as a Sprint 5 deployment-checklist item. |
+| 2026-05-08 | **Resend dev fallback logs the rendered plain-text email to stdout** | Auth flows stay usable end-to-end without a Resend sandbox subscription. Production must set `RESEND_API_KEY`. |
+| 2026-05-08 | **Single-default-address invariant inside a Prisma transaction** | Setting a new default flips off any prior default in the same TX. Deleting the current default auto-promotes the next-most-recent address so checkout never sees "no defaults exist". |
+| 2026-05-08 | **Phone-OTP signup deferred to Sprint 2B** | Blocked on MSG91 DLT registration (≈1 week lead time). The `otpLimiter` is wired so the route can drop in once provisioned. |
