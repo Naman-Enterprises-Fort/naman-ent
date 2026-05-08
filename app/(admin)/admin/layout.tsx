@@ -8,9 +8,14 @@ import {
   Ticket,
   Users,
 } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/shop/logo';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 const NAV = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { AccountSidebar } from '@/components/account/account-sidebar';
@@ -9,6 +10,10 @@ import { auth } from '@/lib/auth';
 import { getCartView } from '@/lib/services/cart';
 import { getCartOwner } from '@/lib/services/cart-owner';
 import { safe } from '@/lib/utils/safe';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AccountLayout({ children }: { children: ReactNode }) {
   const session = await auth().catch(() => null);
