@@ -16,6 +16,7 @@ import type {
 import { customAlphabet } from 'nanoid';
 import { prisma } from '@/lib/db';
 import { clearCart } from '@/lib/services/cart';
+import { recordStockMovements } from '@/lib/services/inventory';
 import { sendOrderDeliveredEmail, sendOrderShippedEmail } from '@/lib/services/order-email';
 import {
   COD_CONVENIENCE_FEE_PAISE,
@@ -24,6 +25,7 @@ import {
   paiseToDecimal,
   type ShippingMethod,
 } from '@/lib/services/pricing';
+import { createShipmentForOrder } from '@/lib/services/shipping';
 import type { CheckoutInlineAddress, CreateCheckoutSessionInput } from '@/lib/validators/checkout';
 
 // -----------------------------------------------------------------------------
@@ -368,7 +370,22 @@ export async function placeOrderForCheckout(input: PlaceOrderInput): Promise<Pla
       },
     });
 
-    // 9. COD is terminal at placement — clear the cart now.
+    // 9. StockMovement audit (Sprint 5C) — best-effort. Skipped silently if the
+    //    default warehouse hasn't been seeded yet. The variant.stock decrement
+    //    above is the source of truth; this is a parallel audit row.
+    await recordStockMovements({
+      tx,
+      type: 'SALE',
+      lines: items
+        .filter((it) => !it.variant.backorderAllowed)
+        .map((it) => ({ variantId: it.variantId, quantity: it.quantity })),
+      refType: 'Order',
+      refId: order.id,
+      reason: `Order ${orderNumber}`,
+      createdBy: userId ?? null,
+    });
+
+    // 10. COD is terminal at placement — clear the cart now.
     if (isCod) {
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
       await tx.cart.update({ where: { id: cart.id }, data: { updatedAt: new Date() } });
@@ -547,6 +564,18 @@ export async function cancelOrder(params: {
         data: { stock: { increment: it.quantity }, version: { increment: 1 } },
       });
     }
+
+    // StockMovement audit row (Sprint 5C) — best-effort, skipped silently
+    // if the default warehouse hasn't been seeded yet.
+    await recordStockMovements({
+      tx,
+      type: 'RETURN',
+      lines: order.items.map((it) => ({ variantId: it.variantId, quantity: it.quantity })),
+      refType: 'Order',
+      refId: order.id,
+      reason: params.reason ? `Cancel: ${params.reason}` : 'Order cancelled',
+      createdBy: params.actorUserId,
+    });
   });
 }
 
@@ -608,7 +637,14 @@ export async function adminTransition(params: {
     });
   });
 
-  // Fire customer-facing emails after the TX commits — best-effort, never throws.
+  // After the TX commits, kick off the side-effects:
+  //  - CONFIRMED → PROCESSING : create the Shiprocket shipment + assign AWB
+  //    + request pickup so the order is ready for the courier. Best-effort:
+  //    a Shiprocket outage logs a warning but doesn't break the transition.
+  //  - → SHIPPED / DELIVERED : send the customer email.
+  if (params.next === 'PROCESSING') {
+    await createShipmentForOrder(params.orderId);
+  }
   if (orderNumber) {
     if (params.next === 'SHIPPED') {
       await sendOrderShippedEmail(orderNumber);

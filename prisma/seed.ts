@@ -343,6 +343,26 @@ const products: SeedProduct[] = [
 ];
 
 async function main() {
+  console.info('Seeding default warehouse...');
+  // Sprint 5C: a single default warehouse anchors the StockMovement audit
+  // rows and the Shiprocket pickup location. Match `DEFAULT_WAREHOUSE_CODE`
+  // env var (default "DEFAULT").
+  await prisma.warehouse.upsert({
+    where: { code: 'DEFAULT' },
+    create: {
+      name: 'Naman Electronics — Mumbai HQ',
+      code: 'DEFAULT',
+      line1: 'TODO: Warehouse address line 1',
+      line2: null,
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      pincode: '400001',
+      country: 'IN',
+      isActive: true,
+    },
+    update: { isActive: true },
+  });
+
   console.info('Seeding categories...');
   const categoryRows = await Promise.all(
     categories.map((c) =>

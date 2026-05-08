@@ -1,3 +1,4 @@
+import { ExternalLink, PackageCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -38,6 +39,14 @@ export default async function OrderDetailPage({
   const bill = order.addresses.find((a) => a.type === 'BILLING') ?? ship;
   const lastPayment = order.payments[order.payments.length - 1];
   const isCod = lastPayment?.gateway === 'COD';
+  const latestShipment = order.shipments[order.shipments.length - 1];
+  const shipmentEta = latestShipment?.estimatedDate
+    ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' }).format(latestShipment.estimatedDate)
+    : null;
+  const shipmentStatusLabel = latestShipment?.status
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 
   return (
     <div className="space-y-6">
@@ -64,6 +73,57 @@ export default async function OrderDetailPage({
           </p>
         </div>
       </header>
+
+      {latestShipment ? (
+        <section aria-label="Tracking" className="rounded-lg border bg-card p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <PackageCheck aria-hidden className="mt-0.5 size-5 text-muted-foreground" />
+              <div>
+                <h2 className="font-semibold text-base">Tracking</h2>
+                <div className="mt-1 flex flex-col gap-0.5 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Courier: </span>
+                    <span className="font-medium">{latestShipment.carrier}</span>
+                  </p>
+                  {latestShipment.awb ? (
+                    <p>
+                      <span className="text-muted-foreground">AWB: </span>
+                      <span className="font-mono">{latestShipment.awb}</span>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground text-xs">
+                      AWB will appear once the courier assigns it.
+                    </p>
+                  )}
+                  {shipmentEta ? (
+                    <p>
+                      <span className="text-muted-foreground">Estimated delivery: </span>
+                      <span className="font-medium">{shipmentEta}</span>
+                    </p>
+                  ) : null}
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">
+                    Status: {shipmentStatusLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {latestShipment.trackingUrl ? (
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={latestShipment.trackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5"
+                >
+                  Track
+                  <ExternalLink aria-hidden className="size-3.5" />
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section aria-label="Order timeline" className="rounded-lg border bg-card p-4 sm:p-5">
         <h2 className="mb-3 font-semibold text-base">Timeline</h2>
