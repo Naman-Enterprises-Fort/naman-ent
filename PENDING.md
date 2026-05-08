@@ -101,13 +101,13 @@ The branch `feature/sprint-1-catalog` was merged into `develop` (commit `62e2f50
 
 ### B. Sprint 1 polish (Phase-1 admin CRUD, can land any time inside Phase 1)
 
-- [ ] **Admin product create/edit form** — server action + `react-hook-form` + `createProductSchema`/`updateProductSchema` (already in [lib/validators/product.ts](./lib/validators/product.ts)). Variant editor, image picker (Cloudinary upload widget), specs editor, category multi-select, brand picker.
-- [ ] **Admin category create/edit form** — name, slug (auto-generated via [lib/utils/slug.ts](./lib/utils/slug.ts)), parent picker, position, image, SEO fields. Reuses `createCategorySchema` / `updateCategorySchema`.
-- [ ] **Admin brand create/edit form** — name, slug, logo, SEO fields. Reuses `createBrandSchema` / `updateBrandSchema`.
-- [ ] **POST/PATCH/DELETE `/api/admin/{products,categories,brands}`** — backed by the same Zod schemas. Auth gate now exists in `lib/services/auth.ts` (`requireRole('CATALOG_MANAGER', 'SUPER_ADMIN')`).
-- [ ] **On-demand revalidation** — when admin mutations land, call `revalidateTag('catalog:product')` / `'catalog:category'` / `'catalog:brand'` so PDPs and PLPs pick up changes without waiting for the ISR window.
-- [ ] **`app/sitemap.ts` + `app/robots.ts`** — Sprint 5 also touches these but landing them earlier costs nothing.
-- [ ] **Header search suggest** — debounced (~150 ms) client-side fetch to `/api/search?mode=suggest` (route already exists), render under the header search input as a dropdown.
+- [ ] **Admin product create/edit form** — server action + `react-hook-form` + `createProductSchema`/`updateProductSchema` (already in [lib/validators/product.ts](./lib/validators/product.ts)). Variant editor, image picker (Cloudinary upload widget), specs editor, category multi-select, brand picker. **(Brand + Category CRUD now done in `feature/sprint-1-catalog-polish`; Product CRUD is the remaining slice.)**
+- [x] ~~**Admin category create/edit form**~~ — done; `/admin/categories/new` + `/admin/categories/[id]` + the matching API routes, with parent picker + cycle prevention.
+- [x] ~~**Admin brand create/edit form**~~ — done; `/admin/brands/new` + `/admin/brands/[id]` + the matching API routes.
+- [ ] **POST/PATCH/DELETE `/api/admin/products`** — same Zod-backed shape as the new brand + category routes. Will need helper sub-routes for managing variants and images on existing products.
+- [x] ~~**On-demand revalidation**~~ — done for brand + category mutations (`revalidateTag(... , 'max')` + `revalidatePath` for Home / `/category` / `/category/[...slug]`). Product CRUD will extend this with `catalog:product` and `revalidatePath('/products/[slug]', 'page')`.
+- [x] ~~**`app/sitemap.ts` + `app/robots.ts`**~~ — done in Sprint 5A.
+- [x] ~~**Header search suggest**~~ — done; debounced 150 ms fetch to `/api/search?mode=suggest`, ARIA combobox semantics, full keyboard nav.
 - [ ] **Hero image asset** — Home currently uses a CSS gradient placeholder. Either commission a hero illustration, or use a Cloudinary upload + the existing `cloudinaryUrl()` helper.
 - [ ] **Cloudinary creds on Vercel preview** — once a Cloudinary cloud is provisioned, set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + the API key/secret in Vercel preview env vars so seeded placeholder URLs resolve.
 

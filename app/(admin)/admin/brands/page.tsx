@@ -1,4 +1,7 @@
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { prisma } from '@/lib/db';
 
 export const metadata = { title: 'Admin · Brands' };
@@ -26,11 +29,19 @@ export default async function AdminBrandsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-semibold text-3xl tracking-tight">Brands</h1>
-        <p className="text-muted-foreground text-sm">
-          {brands.length} brand{brands.length === 1 ? '' : 's'}.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-semibold text-3xl tracking-tight">Brands</h1>
+          <p className="text-muted-foreground text-sm">
+            {brands.length} brand{brands.length === 1 ? '' : 's'}.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/admin/brands/new" className="flex items-center gap-1.5">
+            <Plus aria-hidden className="size-4" />
+            New brand
+          </Link>
+        </Button>
       </header>
       {brands.length === 0 ? (
         <p className="rounded-lg border border-dashed bg-muted/30 p-12 text-center text-muted-foreground text-sm">
@@ -50,7 +61,11 @@ export default async function AdminBrandsPage() {
             <tbody className="divide-y">
               {brands.map((b) => (
                 <tr key={b.id} className="hover:bg-accent/40">
-                  <td className="px-4 py-3 font-medium">{b.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/brands/${b.id}`} className="hover:underline">
+                      {b.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground text-xs">{b.slug}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{b._count.products}</td>
                   <td className="px-4 py-3">

@@ -1,4 +1,7 @@
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { prisma } from '@/lib/db';
 
 export const metadata = { title: 'Admin · Categories' };
@@ -28,11 +31,19 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6 p-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-semibold text-3xl tracking-tight">Categories</h1>
-        <p className="text-muted-foreground text-sm">
-          {categories.length} categor{categories.length === 1 ? 'y' : 'ies'}.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-semibold text-3xl tracking-tight">Categories</h1>
+          <p className="text-muted-foreground text-sm">
+            {categories.length} categor{categories.length === 1 ? 'y' : 'ies'}.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/admin/categories/new" className="flex items-center gap-1.5">
+            <Plus aria-hidden className="size-4" />
+            New category
+          </Link>
+        </Button>
       </header>
       {categories.length === 0 ? (
         <p className="rounded-lg border border-dashed bg-muted/30 p-12 text-center text-muted-foreground text-sm">
@@ -55,7 +66,11 @@ export default async function AdminCategoriesPage() {
             <tbody className="divide-y">
               {categories.map((c) => (
                 <tr key={c.id} className="hover:bg-accent/40">
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/admin/categories/${c.id}`} className="hover:underline">
+                      {c.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground text-xs">{c.slug}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.parent?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{c.position}</td>
