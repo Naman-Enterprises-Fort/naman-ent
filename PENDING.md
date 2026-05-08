@@ -34,17 +34,16 @@ The branch `feature/sprint-1-catalog` was merged into `develop` (commit `62e2f50
 
 ## Sprint 2 — finish verification before declaring DONE
 
-The branch `feature/sprint-2-auth` is code-complete (typecheck + lint clean). Same verification gate as Sprint 1: needs a wired DB to run the auth flows end-to-end.
+The branch `feature/sprint-2-auth` was merged into `develop` (commit `0e5556f`); same verification gate as Sprint 1, blocked on a wired DB.
 
 ### A. Verification (blocks `IN_PROGRESS → DONE`)
 
-- [ ] **Migration**: `pnpm prisma migrate dev --name sprint-2-auth` (or fold into `init` if Sprint 1's hasn't run yet) to land `User.tokenVersion`, `UserLoginEvent`, `UserLoginEventKind`, `PasswordResetToken`.
+- [ ] **Migration**: `pnpm prisma migrate dev --name init` (folds Sprint 1 + 2 + 3 schema into the first migration once `.env.local` is wired). Sprint 2's additions: `User.tokenVersion`, `UserLoginEvent`, `UserLoginEventKind`, `PasswordResetToken`.
 - [ ] **`pnpm dev` smoke** — register a new account and confirm the verify link appears in stdout (`[email:dev] →`) when `RESEND_API_KEY` is unset. Click the link → land on `/verify-email?status=success` → sign in → verify the account dropdown, profile edit, address create with pincode autofill (try `110001` → New Delhi / Delhi), security page change-password and revoke-all.
 - [ ] **Forgot-password flow** — request reset, follow the dev-stdout link, set new password, confirm sign-in works and the old session was invalidated on a second device (or open a private window first).
 - [ ] **Google OAuth smoke** (optional in dev — needs `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`).
 - [ ] **`pnpm build`** — first production-build pass for Sprint 2; auth routes pin `runtime = 'nodejs'` for bcrypt + `node:crypto` so confirm they survive the build.
 - [ ] **Lighthouse on `/login`** (mobile) — should still pass A11y ≥ 95 / SEO ≥ 95 (Perf threshold doesn't apply to non-public pages but should still score well).
-- [ ] Tick the Sprint 2 acceptance bullets, flip `IN_PROGRESS → DONE` in PROGRESS.md, open the PR per the per-sprint workflow.
 
 ### B. Sprint 2 polish (deferred, out of Sprint 2's critical path)
 
@@ -64,6 +63,32 @@ The branch `feature/sprint-2-auth` is code-complete (typecheck + lint clean). Sa
 - [ ] Branch-protection rules on `develop` and `main` (require passing CI + 1 review). CI itself ships in Sprint 5.
 - [ ] Resend sandbox account + verified sender domain.
 - [ ] Upstash Redis REST credentials (free tier).
+
+---
+
+## Sprint 3 — finish verification before declaring DONE
+
+The branch `feature/sprint-3-cart` is code-complete (typecheck + lint clean). No new schema (Cart + CartItem + Variant.version were already in the Sprint-0 schema), so the verification gate is just the dev-server smoke + production build.
+
+### A. Verification (blocks `IN_PROGRESS → DONE`)
+
+- [ ] **`pnpm dev` smoke — guest journey**: visit `/` → click into a PDP → press Add to cart → confirm the mini-cart drawer opens with the new line ring-highlighted for ~1.4s → tweak quantity in the stepper (totals re-render instantly without a second fetch) → press "View cart" → confirm `/cart` shows the same lines and the Subtotal matches the drawer total exactly → press "Save for later" on a line → confirm it moves to a separate "Saved for later" section and is excluded from totals → press "Move to cart" → confirm it returns to the active list → press "Remove" → confirm the line is gone and the empty state renders.
+- [ ] **Variant-aware sticky CTA** (mobile viewport, < 768px): on a PDP with multiple variants, switch to a non-default variant and confirm the sticky bar at the bottom shows the new variant's price + adds the right SKU on tap.
+- [ ] **Free-shipping bar** correctness: with a single low-price item (e.g. Boat Airdopes 141 @ ₹1,199) the bar should read "Add ₹X for free shipping" with the right delta; once items push the cart over ₹999, the bar swaps to the green "You qualify for free shipping" state and the summary's Shipping line goes from ₹49 to "Free".
+- [ ] **Merge-on-login**: build a guest cart with two lines → sign in as an existing user → confirm the user cart now contains the merged lines (quantities summed where the same variant existed before, otherwise added). Sign out and confirm the new browser session starts with an empty cart (the guest cart cookie was rotated and the user's cart is no longer reachable without signing back in).
+- [ ] **Pricing parity** between client-rendered totals and a server `getCartView()` recompute (sanity check). The acceptance bullet "totals match server-side recompute exactly" is the contract — eyeball the GST line on a 28% HSN to confirm the back-out math (`tax = price·gst/(100+gst)`).
+- [ ] **`pnpm build`** — first production build for Sprint 3; cart routes pin `runtime = 'nodejs'` (Prisma + node:crypto for the cookie). Confirm both routes survive the build.
+- [ ] **Lighthouse mobile on `/cart`**: A11y ≥ 95 / SEO threshold N/A (page is `robots: { index: false }`). Cart page Perf doesn't have an explicit SRS threshold but should still score reasonably.
+
+### B. Sprint 3 polish (deferred, out of Sprint 3's critical path)
+
+- [ ] **Coupon code application** (SRS §6.4.1) — Phase 2 polish. The summary panel reserves a Discount line that renders only when `discountPaise > 0`, so wiring is a one-line addition once the coupon engine lands.
+- [ ] **Cross-sell strip** ("People also bought") on the cart page — Phase 2 polish; can reuse `getRelatedProducts` from `lib/services/catalog.ts`.
+- [ ] **Save-for-later → wishlist move** — Sprint 3 only flips `CartItem.savedForLater`; the multi-list wishlist move is Phase 2.
+- [ ] **Optimistic-lock stock decrement** — variant `version` is read in the cart-add TX but not bumped. The real `UPDATE … WHERE id = ? AND version = ?` decrement lands at order placement (Sprint 4).
+- [ ] **Cart abandonment recovery emails** (1h / 24h / 72h via Resend) — Sprint 5 alongside the rest of the email programme.
+- [ ] **Switch the cart-icon badge to the lighter `getCartItemCount()` aggregate** — both shop and account layouts currently call `getCartView()` on every render to prime the TanStack cache. Acceptable at Phase-1 scale but worth profiling against the lighter `getCartItemCount()` if the Lighthouse Perf score on heavy pages dips.
+- [ ] **Inline stock alert on the cart page** — currently we surface the per-line "Out of stock" / "Only N available" message inline on each line. SRS §6.4.1 mentions a cart-level stock alert; not strictly required for the acceptance criteria.
 
 ---
 
