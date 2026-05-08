@@ -4,6 +4,29 @@
 
 ---
 
+## Sprint 5A — finish verification before declaring DONE
+
+The branch `feature/sprint-5-seo-compliance` is code-complete (typecheck + lint clean). No schema changes, no third-party creds required for this slice. The verification gate is the production build + a manual smoke of the new public pages and sitemap/robots routes.
+
+### A. Verification (blocks `IN_PROGRESS → DONE`)
+
+- [ ] **`pnpm build`** — first production build for the four sitemap routes + `app/robots.ts` + the 7 legal pages. The sitemap routes pin `runtime = 'nodejs'` and use `safe()` to fall back to an empty `<urlset>` when the DB is unreachable, so the build should succeed even before Neon is wired.
+- [ ] **`pnpm dev` smoke — public pages**: visit `/privacy`, `/terms`, `/returns`, `/shipping`, `/cancellation`, `/cookies`, `/contact`. Confirm: breadcrumbs, last-updated date, the visible `[TODO: …]` placeholders surface where the corresponding `STORE_*` / `GRIEVANCE_OFFICER_*` env vars are unset.
+- [ ] **`pnpm dev` smoke — sitemap + robots**: GET `/sitemap.xml` (index referencing the 3 sub-sitemaps), `/sitemap-pages.xml` (Home + /category + 7 legal pages), `/sitemap-categories.xml` (active categories), `/sitemap-products.xml` (active products), and `/robots.txt` (allow-all + disallow list + sitemap pointer). Validate the XML at the [Google Search Console sitemap validator](https://search.google.com/search-console).
+- [ ] **`<head>` audit** — view-source on Home, a PLP, a PDP, and one of the legal pages. Confirm: `<link rel="canonical">`, `<meta name="robots">` (index/follow on public, noindex on `/cart` / `/checkout` / `/(auth)/*` / `/account/*` / `/admin/*`), Open Graph tags, Twitter Card tags, and the three Home JSON-LD blocks (Organization with contactPoint, WebSite with SearchAction, ItemList for Trending).
+- [ ] **Footer audit** — every link in the footer should resolve to a real page (no /about 404). The "Legal" column links Privacy / Terms / Cookies / Cancellation; the "Help" column links Contact / Shipping / Returns / Track order.
+- [ ] **Lighthouse mobile** on Home, a PLP, a PDP, and `/privacy`: SEO ≥ 95 on each. A11y ≥ 95 on each. Perf ≥ 85 on Home / PLP / PDP (legal pages have no Perf threshold).
+- [ ] **Schema.org validator** — paste the rendered HTML of `/`, `/products/iphone-15-pro` (or any seeded PDP), and `/category/smartphones` into [validator.schema.org](https://validator.schema.org/) and confirm zero errors.
+
+### B. Operational follow-ups (blocks launch, not Sprint 5A merge)
+
+- [ ] Fill the new compliance env vars in Vercel preview / staging / production: `STORE_LEGAL_NAME`, `STORE_REGISTERED_ADDRESS`, `STORE_GSTIN`, `STORE_CIN` (optional), `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `GRIEVANCE_OFFICER_NAME`, `GRIEVANCE_OFFICER_EMAIL`, `GRIEVANCE_OFFICER_DESIGNATION`. Until set, the legal pages render visible `[TODO: …]` placeholders.
+- [ ] Submit the production sitemap.xml to Google Search Console and Bing Webmaster Tools after the develop → main release.
+- [ ] Legal review of the 7 compliance pages by an Indian e-commerce / consumer-law counsel before launch. The drafts in this branch are intentionally CP-Rules-2020 / IT-Rules-2021 / DPDP-Act-2023 aware but are not a substitute for review.
+- [ ] Designate a real Grievance Officer (with name, email at the company domain, designation) and update env vars accordingly.
+
+---
+
 ## Sprint 1 — finish verification before declaring DONE
 
 The branch `feature/sprint-1-catalog` was merged into `develop` (commit `62e2f50`) but the dev-server smoke + Lighthouse pass that flip Sprint 1 to truly DONE still need to run against a wired Neon DB.
