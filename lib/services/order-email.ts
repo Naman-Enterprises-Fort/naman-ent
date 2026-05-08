@@ -80,12 +80,21 @@ export async function sendOrderShippedEmail(orderNumber: string): Promise<void> 
         items: { select: { quantity: true } },
         addresses: { where: { type: 'SHIPPING' } },
         user: { select: { name: true } },
+        shipments: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
     if (!order) return;
     const ship = order.addresses[0];
     if (!ship) return;
     const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+    const shipment = order.shipments[0] ?? null;
+    const estimatedDelivery = shipment?.estimatedDate
+      ? shipment.estimatedDate.toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : null;
     await sendEmail({
       to: order.email,
       subject: `Order ${order.orderNumber} is on the way`,
@@ -94,11 +103,9 @@ export async function sendOrderShippedEmail(orderNumber: string): Promise<void> 
         orderNumber: order.orderNumber,
         itemCount,
         trackUrl: trackUrlFor(order),
-        // Shiprocket data lands in Sprint 5C; for now fields stay null and
-        // the template hides the courier line gracefully.
-        courier: null,
-        awb: null,
-        estimatedDelivery: null,
+        courier: shipment?.carrier ?? null,
+        awb: shipment?.awb ?? null,
+        estimatedDelivery,
         shipping: {
           fullName: ship.fullName,
           line1: ship.line1,
