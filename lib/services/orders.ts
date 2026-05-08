@@ -16,6 +16,7 @@ import type {
 import { customAlphabet } from 'nanoid';
 import { prisma } from '@/lib/db';
 import { clearCart } from '@/lib/services/cart';
+import { sendOrderDeliveredEmail, sendOrderShippedEmail } from '@/lib/services/order-email';
 import {
   COD_CONVENIENCE_FEE_PAISE,
   computeCartTotals,
@@ -576,6 +577,7 @@ export async function adminTransition(params: {
   note?: string;
   actorUserId: string;
 }): Promise<void> {
+  let orderNumber: string | null = null;
   await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: params.orderId } });
     if (!order) throw new OrderError('NOT_FOUND', 'Order not found');
@@ -586,6 +588,7 @@ export async function adminTransition(params: {
         `Cannot transition ${order.status} → ${params.next}`,
       );
     }
+    orderNumber = order.orderNumber;
     await tx.order.update({
       where: { id: order.id },
       data: {
@@ -604,6 +607,15 @@ export async function adminTransition(params: {
       },
     });
   });
+
+  // Fire customer-facing emails after the TX commits — best-effort, never throws.
+  if (orderNumber) {
+    if (params.next === 'SHIPPED') {
+      await sendOrderShippedEmail(orderNumber);
+    } else if (params.next === 'DELIVERED') {
+      await sendOrderDeliveredEmail(orderNumber);
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

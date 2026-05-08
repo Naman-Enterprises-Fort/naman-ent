@@ -2,6 +2,7 @@ import 'server-only';
 import type { Prisma, RefundStatus } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { verifyWebhookSignature } from '@/lib/razorpay';
+import { sendRefundProcessedEmail } from '@/lib/services/order-email';
 import { paiseToDecimal } from '@/lib/services/pricing';
 
 /**
@@ -226,7 +227,12 @@ async function onRefundEvent(r: RazorpayEventRefund, sourceEvent: string): Promi
   });
   if (!payment) return;
 
-  // Upsert the refund row keyed by the gateway refund id.
+  // Capture whether this run *transitioned* the refund into PROCESSED, so we can
+  // fire the customer email only on the actual transition (not on replayed
+  // webhooks that find the row already PROCESSED).
+  let justProcessed = false;
+  let isPartial = false;
+
   await prisma.$transaction(async (tx) => {
     const existing = await tx.refund.findUnique({ where: { gatewayRefundId: r.id } });
     if (existing) {
@@ -277,11 +283,21 @@ async function onRefundEvent(r: RazorpayEventRefund, sourceEvent: string): Promi
         data: {
           orderId: payment.orderId,
           status: fully ? 'REFUNDED' : 'CONFIRMED',
-          note: `Webhook ${sourceEvent} (₹${(refundedTotal).toFixed(2)} refunded)`,
+          note: `Webhook ${sourceEvent} (₹${refundedTotal.toFixed(2)} refunded)`,
         },
       });
+      justProcessed = true;
+      isPartial = !fully;
     }
   });
+
+  if (justProcessed) {
+    await sendRefundProcessedEmail({
+      orderId: payment.orderId,
+      refundPaise: r.amount,
+      isPartial,
+    });
+  }
 }
 
 // -----------------------------------------------------------------------------
