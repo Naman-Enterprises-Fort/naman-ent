@@ -4,6 +4,7 @@ import NextAuth, { type DefaultSession } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { z } from 'zod';
+import { clearFailedLogins, isAccountLocked, recordFailedLogin } from '@/lib/account-lockout';
 import { prisma } from '@/lib/db';
 
 const credentialsSchema = z.object({
@@ -57,11 +58,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password } = parsed.data;
         const user = await prisma.user.findUnique({ where: { email } });
+
+        // Don't tally failed-login attempts for non-existent / blocked /
+        // deleted / OAuth-only accounts — incrementing here would leak
+        // existence (an attacker could measure lockout to enumerate).
         if (!user?.passwordHash || user.isBlocked || user.deletedAt) return null;
 
-        const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
+        // Per-account lockout (Sprint 2 polish): 5 failures in 10 min puts
+        // the account in a cooldown. Returns the same generic null as a
+        // wrong password — no account-state signal to the caller.
+        if (await isAccountLocked(email)) return null;
 
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) {
+          await recordFailedLogin(email);
+          return null;
+        }
+
+        await clearFailedLogins(email);
         return {
           id: user.id,
           email: user.email ?? undefined,
