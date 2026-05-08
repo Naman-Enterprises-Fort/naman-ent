@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { registerLimiter } from '@/lib/redis';
 import { sendEmail } from '@/lib/resend';
 import { issueEmailVerificationToken } from '@/lib/services/auth-tokens';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { appUrl, getClientIp } from '@/lib/utils/request';
 import { registerSchema } from '@/lib/validators/auth';
 
@@ -29,7 +30,17 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  const { name, email, password } = parsed.data;
+  const { name, email, password, turnstileToken } = parsed.data;
+
+  // Bot protection (SRS §12.1) — Cloudflare Turnstile. Permissive in dev when
+  // TURNSTILE_SECRET_KEY is unset; production with no secret denies (fail-closed).
+  const tsResult = await verifyTurnstile({ token: turnstileToken ?? null, ip });
+  if (!tsResult.success) {
+    return NextResponse.json(
+      { error: 'Bot verification failed. Please try again.' },
+      { status: 400 },
+    );
+  }
 
   // Reject any existing email — including OAuth-only accounts. Letting an
   // attacker set a password on a Google-only account before the real owner
