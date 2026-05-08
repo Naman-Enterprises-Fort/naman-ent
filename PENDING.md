@@ -4,6 +4,41 @@
 
 ---
 
+## Sprint 5C — finish verification before declaring DONE
+
+The branch `feature/sprint-5-shipping` is code-complete (typecheck + lint clean). No schema changes — `Shipment`, `Warehouse`, and `StockMovement` were already in the Sprint-0 schema. The verification gate is the dev-server smoke against a wired Shiprocket sandbox plus the production build.
+
+### A. Verification (blocks `IN_PROGRESS → DONE`)
+
+- [ ] **`pnpm db:seed`** — confirms the `code: 'DEFAULT'` Mumbai HQ warehouse upsert lands. Pair with `pnpm prisma migrate dev --name init` if rolling forward from a fresh DB.
+- [ ] **Shiprocket sandbox creds** — fill `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`, `SHIPROCKET_WEBHOOK_TOKEN` in `.env.local` from a Shiprocket API user (Settings → API → Add New API User). Set `SHIPROCKET_PICKUP_LOCATION` to a nickname that already exists on the Shiprocket dashboard (Settings → Pickup Addresses) — defaults to `"Primary"`.
+- [ ] **`pnpm dev` smoke — order pipeline**: place an order (Sprint 4 path), sign in as `SUPER_ADMIN`, transition CONFIRMED → PROCESSING. Watch stdout for: a Shiprocket login (only on first call after restart), a `POST /v1/external/orders/create/adhoc`, a `POST /v1/external/courier/assign/awb`, a `POST /v1/external/courier/generate/pickup`, and the local Shipment row INSERT. Confirm `/account/orders/<num>` shows the new Tracking section with courier + AWB + tracking link.
+- [ ] **`pnpm dev` smoke — tracking webhook**: hand-craft a `POST /api/webhooks/shiprocket` with `x-api-key: <SHIPROCKET_WEBHOOK_TOKEN>` and a body matching the Shiprocket `current_status: "Out for Delivery"` shape. Confirm `Shipment.status → OUT_FOR_DELIVERY` and `Order.status → OUT_FOR_DELIVERY`. Replay the same webhook — confirm no duplicate OrderEvent and no duplicate email. Replay an "earlier" status (`In Transit`) — confirm no-op (rank-based forward-only).
+- [ ] **`pnpm dev` smoke — webhook signature failure**: POST without the `x-api-key` header — confirm `401 unauthorized`, no DB rows mutated.
+- [ ] **`pnpm dev` smoke — rate quote**: `curl 'http://localhost:3000/api/shipping/rates?pickupPincode=400001&deliveryPincode=110001&weightKg=1&cod=0'` returns a list of available couriers with rates and ETAs. With creds missing, returns `{ available: false, reason: 'shiprocket_unconfigured' }`.
+- [ ] **`pnpm dev` smoke — StockMovement audit**: place an order while signed in, then `psql` `SELECT * FROM stock_movement WHERE ref_id = '<order.id>'` — expect one `SALE` row per non-backorder line. Cancel the order from `/account/orders/<num>` — expect a matching `RETURN` row. Backorder-allowed variants should produce no audit row on placement.
+- [ ] **₹1 Razorpay-then-Shiprocket end-to-end** in sandbox — verifies the Sprint 4 → 5B → 5C pipeline survives a real round-trip. Use the Razorpay test card `4111 1111 1111 1111` then walk the order to PROCESSING; confirm Shiprocket receives the order and the tracking webhook fires correctly when status changes propagate.
+- [ ] **`pnpm build`** — first production build for Sprint 5C. The 4 new TS modules and 2 new routes should compile cleanly.
+
+### B. Sprint 5C polish (deferred, out of Sprint 5C's critical path)
+
+- [ ] **Per-product package dimensions on `ProductVariant`** — currently 30×30×10 cm + summed `weightGrams` (with 500 g/item fallback). A Phase-2 catalog enhancement adds a `dimensions Json?` field (length/breadth/height) so the createShiprocketOrder call can use real values. Until then, oversized / underweight orders may get rejected by Shiprocket and the admin will see the warning in stdout.
+- [ ] **Admin "manual pickup" / "regenerate AWB" buttons** — currently the admin can only retry by re-running `→ PROCESSING` manually (which is currently a one-shot transition). A polish item is to expose `requestShiprocketPickup` + `assignAwb` as explicit admin actions on `/admin/orders/[id]`.
+- [ ] **Returns pickup integration** (`/v1/external/orders/create/return` + reverse-pickup) — Phase 2 alongside the customer-side return UI.
+- [ ] **Multi-warehouse routing** (per-pincode origin selection) — Phase 3, alongside multi-vendor.
+- [ ] **Customer-facing variable shipping rates** at checkout — Phase 2 commercial decision (pass real costs vs absorb-and-flat-price). The /api/shipping/rates endpoint is the building block.
+- [ ] **Multi-package shipments** (one Order → many Shipments) — Phase 2; current model assumes 1 Shipment per Order.
+- [ ] **Status mapping for NDR / RTO** (Non-Delivery Reason, Return-to-Origin) — currently mapped to `EXCEPTION` / `RETURNED_TO_ORIGIN` but no customer-facing flow exists yet.
+
+### C. Operational follow-ups
+
+- [ ] **Set `SHIPROCKET_*` env vars** in Vercel preview / staging / production. The pickup location must already exist on the Shiprocket dashboard under the same nickname.
+- [ ] **Configure the Shiprocket webhook** on Settings → API → Webhooks to POST `https://<production>/api/webhooks/shiprocket` with the matching Security Token in `x-api-key`.
+- [ ] **Update the seeded warehouse address** to the real Mumbai HQ address (`UPDATE warehouse SET line1 = '...' WHERE code = 'DEFAULT'` or amend [prisma/seed.ts](./prisma/seed.ts) and re-seed).
+- [ ] **Whitelist Shiprocket callbacks** in any production WAF / Cloudflare rules (their IP range is published in the Shiprocket integration docs).
+
+---
+
 ## Sprint 5B — finish verification before declaring DONE
 
 The branch `feature/sprint-5-email-programme` is code-complete (typecheck + lint clean). One new model (`CartReminder`) lands in the next migration; otherwise the changes are template + service + cron-route additions and two surgical wiring edits.
