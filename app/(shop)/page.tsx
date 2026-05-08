@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { ProductGrid } from '@/components/shop/product-grid';
 import { Button } from '@/components/ui/button';
 import { cloudinaryLoader } from '@/lib/cloudinary';
+import { storeConfig } from '@/lib/content/store-config';
 import {
   getActiveBrands,
   getFeaturedCategories,
   getTrendingProducts,
 } from '@/lib/services/catalog';
 import { safe } from '@/lib/utils/safe';
-import { itemListJsonLd, organizationJsonLd } from '@/lib/utils/seo';
+import { itemListJsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/utils/seo';
 
 export const revalidate = 300;
 
@@ -35,11 +36,14 @@ export default async function HomePage() {
     safe(() => getActiveBrands(12), []),
   ]);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = storeConfig.url;
   const orgLd = organizationJsonLd({
-    name: process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Electronics',
+    name: storeConfig.name,
     url: appUrl,
+    contactEmail: storeConfig.supportEmail,
+    contactPhone: storeConfig.supportPhone,
   });
+  const siteLd = websiteJsonLd({ name: storeConfig.name, url: appUrl });
   const trendingLd = itemListJsonLd(
     'Trending products',
     trending.map((p) => `${appUrl}/products/${p.slug}`),
@@ -51,6 +55,11 @@ export default async function HomePage() {
         type="application/ld+json"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: structured data
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: structured data
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }}
       />
       {trending.length > 0 && (
         <script
