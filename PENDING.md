@@ -66,6 +66,44 @@ The branch `feature/sprint-2-auth` was merged into `develop` (commit `0e5556f`);
 
 ---
 
+## Sprint 4 — finish verification before declaring DONE
+
+The branch `feature/sprint-4-checkout` is code-complete (typecheck + lint clean). No new schema (Order / OrderItem / OrderAddress / OrderEvent / Payment / Refund were already in the Sprint-0 schema), so the verification gate is the dev-server smoke + a real Razorpay test transaction + production build.
+
+### A. Verification (blocks `IN_PROGRESS → DONE`)
+
+- [ ] **Razorpay test keys** — fill `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID` in `.env.local` from the Razorpay test-mode dashboard.
+- [ ] **Migration**: `pnpm prisma migrate dev --name init` (folds Sprint 1 + 2 + 3 + 4 schema into the first migration once `.env.local` is wired). No Sprint-4 schema additions.
+- [ ] **`pnpm dev` smoke — COD path**: log in → add items → `/checkout` → pick COD → Place order → land on `/checkout/success?orderNumber=...` → check stdout for the `[email:dev] →` order-placed email log → `/account/orders` lists the new order → open the detail page → confirm timeline shows PENDING + CONFIRMED events with the COD note → cancel the order → confirm stock is restored on the variant (compare ProductVariant.stock before/after).
+- [ ] **`pnpm dev` smoke — online path**: pick UPI → confirm Razorpay test modal opens (loaded from `https://checkout.razorpay.com/v1/checkout.js`) → use test card `4111 1111 1111 1111` (CVV 123, any future expiry, OTP 1234) → modal closes → land on `/checkout/success` → email log fires → order detail shows CONFIRMED + payment CAPTURED + a Razorpay `payment_id` on the Payment row.
+- [ ] **₹1 Razorpay test transaction** in the Razorpay sandbox to validate the auto-capture + signature verify wiring end-to-end.
+- [ ] **Webhook idempotency** — hand-craft a `payment.captured` POST against `/api/webhooks/razorpay` with the live HMAC and replay it twice; confirm the second call is a no-op (Payment.gatewayPaymentId unique constraint).
+- [ ] **Webhook signature failure** — send a webhook POST without the `x-razorpay-signature` header; confirm `400 invalid_signature` and that no DB rows are mutated.
+- [ ] **Admin transitions** — sign in as `SUPER_ADMIN`, walk an order CONFIRMED → PROCESSING → SHIPPED → OUT_FOR_DELIVERY → DELIVERED; confirm OrderEvents accrete with timestamps + the internal note. Confirm `nextAdminStatuses(DELIVERED)` doesn't allow random transitions back to PROCESSING (409 INVALID_TRANSITION).
+- [ ] **Inter-state vs intra-state GST split** — place an order with shipping state = origin state (`Maharashtra` by default); confirm CGST + SGST split kicks in on the order (each = tax/2). Place another with shipping state ≠ origin; confirm IGST = full tax. The cart preview shows a single GST line; the split is server-side at placement and surfaces in the OrderItem.taxAmount + the Order.taxTotal field.
+- [ ] **`pnpm build`** — first production build for Sprint 4; checkout / orders / webhook routes pin `runtime = 'nodejs'` (Prisma + node:crypto for HMAC). Confirm all routes survive the build.
+- [ ] **Lighthouse mobile on `/checkout`**: A11y ≥ 95 / SEO threshold N/A (page is `robots: { index: false }`).
+
+### B. Sprint 4 polish (deferred, out of Sprint 4's critical path)
+
+- [ ] **Razorpay Magic Checkout** (SRS §6.5.3) — Phase-2 1-click checkout with saved addresses (~2× faster conversion). Web Checkout Standard ships in Sprint 4.
+- [ ] **Coupon engine** (SRS §6.9) — Phase 2; the order schema reserves `discountTotal` so wiring is additive.
+- [ ] **Loyalty point redemption + GST invoice PDF** — partially supported (`isGstInvoice` + `gstin` already land on the order); the printable invoice PDF is Sprint 5+.
+- [ ] **Order cleanup cron for abandoned PENDING orders** — Phase 1 doesn't run a cron, so an online order whose Razorpay modal is closed leaves an Order in `PENDING` with stock decremented. Sprint 5's QStash schedule should mark them FAILED + restore stock after 30 minutes (Razorpay `payment.failed` webhook handles this when it fires; the cron is a backstop).
+- [ ] **Reschedule delivery + return flow** (SRS §6.6.2) — Phase 2.
+- [ ] **Bulk admin actions** (mark shipped, generate invoices, export CSV — SRS §6.6.3) — Phase 2; Sprint 4 ships per-order transitions only.
+- [ ] **`StockMovement` audit row on order placement / cancel** — currently we only adjust `ProductVariant.stock`; the audit table needs a Phase-1 warehouse to land. Sprint 5 wires it alongside Shiprocket.
+- [ ] **Guest checkout polish** — works, but a "track my order with email + order number" lookup form is Phase 2.
+- [ ] **`x-razorpay-event-id` dedup audit log** — webhook handler is already idempotent via `gatewayPaymentId` / `gatewayRefundId` unique constraints; a separate `WebhookEvent` audit log would make the trail explicit. Sprint 5.
+- [ ] **Cart abandonment recovery emails** (1h / 24h / 72h via Resend) — Sprint 5 alongside the rest of the email programme.
+
+### C. Operational follow-ups
+
+- [ ] Razorpay live keys provisioned (after KYC clears) — only added to production env vars.
+- [ ] Razorpay webhook endpoint registered on the dashboard pointing at `https://<production>/api/webhooks/razorpay` with the signing key matching `RAZORPAY_WEBHOOK_SECRET`.
+
+---
+
 ## Sprint 3 — finish verification before declaring DONE
 
 The branch `feature/sprint-3-cart` is code-complete (typecheck + lint clean). No new schema (Cart + CartItem + Variant.version were already in the Sprint-0 schema), so the verification gate is just the dev-server smoke + production build.

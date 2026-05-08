@@ -1,5 +1,28 @@
 import 'server-only';
 import { Prisma } from '@prisma/client';
+import {
+  COD_CONVENIENCE_FEE_PAISE,
+  codFeeFor,
+  EXPRESS_SHIPPING_PAISE,
+  FLAT_SHIPPING_PAISE,
+  FREE_SHIPPING_THRESHOLD_PAISE,
+  type PaymentMethodKey,
+  SAME_DAY_SHIPPING_PAISE,
+  type ShippingMethod,
+  shippingPaiseFor,
+} from '@/lib/pricing-shared';
+
+export {
+  COD_CONVENIENCE_FEE_PAISE,
+  codFeeFor,
+  EXPRESS_SHIPPING_PAISE,
+  FLAT_SHIPPING_PAISE,
+  FREE_SHIPPING_THRESHOLD_PAISE,
+  type PaymentMethodKey,
+  SAME_DAY_SHIPPING_PAISE,
+  type ShippingMethod,
+  shippingPaiseFor,
+};
 
 /**
  * Server-side pricing engine — Sprint 3 baseline.
@@ -25,9 +48,6 @@ import { Prisma } from '@prisma/client';
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-
-export const FREE_SHIPPING_THRESHOLD_PAISE = 99_900; // ₹999.00
-export const FLAT_SHIPPING_PAISE = 4_900; // ₹49.00
 
 /** Origin state of the (single Phase-1) warehouse — used for CGST/SGST vs IGST. */
 export const STORE_ORIGIN_STATE = (process.env.STORE_ORIGIN_STATE ?? 'Maharashtra').trim();
@@ -89,9 +109,14 @@ export interface PricingOptions {
   destinationState?: string | null;
   /** Override origin state for testing. */
   originState?: string;
-  /** Phase-1 forces COD fee + coupon to 0; the fields exist so Sprint 4 can wire them. */
-  codFeePaise?: number;
+  /** Coupon / promo discount in paise. */
   discountPaise?: number;
+  /** Explicit COD fee override; otherwise derived from `paymentMethod === 'COD'`. */
+  codFeePaise?: number;
+  /** Sprint 4: shipping tier. Defaults to STANDARD. */
+  shippingMethod?: ShippingMethod;
+  /** Sprint 4: payment method. Used to auto-derive the COD convenience fee. */
+  paymentMethod?: PaymentMethodKey | null;
 }
 
 // -----------------------------------------------------------------------------
@@ -152,12 +177,14 @@ export function computeCartTotals(
     igst = taxPaise;
   }
 
-  const shippingPaise =
-    lineTotal === 0 || lineTotal >= FREE_SHIPPING_THRESHOLD_PAISE ? 0 : FLAT_SHIPPING_PAISE;
+  const shippingMethod: ShippingMethod = options.shippingMethod ?? 'STANDARD';
+  const shippingPaise = shippingPaiseFor(shippingMethod, lineTotal);
+  // The free-shipping progress bar always reflects the STANDARD threshold —
+  // EXPRESS / SAME_DAY are paid no matter the cart value.
   const freeShippingDeltaPaise =
     lineTotal === 0 ? 0 : Math.max(0, FREE_SHIPPING_THRESHOLD_PAISE - lineTotal);
 
-  const codFeePaise = options.codFeePaise ?? 0;
+  const codFeePaise = options.codFeePaise ?? codFeeFor(options.paymentMethod);
   const discountPaise = options.discountPaise ?? 0;
 
   const totalPaise = Math.max(0, lineTotal + shippingPaise + codFeePaise - discountPaise);
