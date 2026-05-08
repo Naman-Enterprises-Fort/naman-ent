@@ -92,59 +92,75 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 ## Last Session Summary
 
 **Date:** 2026-05-08
-**Sprint:** Sprint 0 — Bootstrap (Phase 1 foundation)
-**Status:** DONE — handed back to user for review
+**Sprint:** Sprint 1 — Catalog (Home, PLP, PDP)
+**Status:** CODE COMPLETE — pending DB/env wiring + visual QA before merge
 
 ### Done this session
 
-- Read [docs/SRS.md](./docs/SRS.md) and [SETUP_GUIDE.md](./SETUP_GUIDE.md) end-to-end.
-- Verified all locked versions on npm (Next 16.2.6, React 19.2.6, TS 6.0.3, Tailwind 4.2.4, Prisma 7.8.0, Zustand 5.0.13, TanStack Query 5.100.9, RHF 7.75.0, Zod ^4.4.3, Auth.js v5 = `next-auth@5.0.0-beta.31`).
-- Wrote [CLAUDE.md](./CLAUDE.md): mission, locked stack, architectural rules, design system, folder structure, DO-NOT list, working rules.
-- Wrote [PROGRESS.md](./PROGRESS.md): sprint tracker + decisions log.
-- Authored `package.json` pinned to the SRS versions; added `lint-staged`, `husky`, `dotenv`, `pg`, `@prisma/adapter-pg`, `@types/pg` after Prisma 7 schema-config split surfaced.
-- TypeScript strict mode in `tsconfig.json` (with `noUncheckedIndexedAccess`, `noImplicitOverride`, `verbatimModuleSyntax`); `paths: { "@/*": ["./*"] }`. (TS 6 deprecates `baseUrl`, so it was removed.) Next.js 16 auto-added `.next/dev/types/**/*.ts` to `include` and switched `jsx` to `react-jsx` on first dev boot — both expected.
-- Biome 2.4.14 configured (`biome.json`) — single tool for lint + format + import sort. Custom rules for `noConsole` (allow warn/error/info), `useExhaustiveDependencies`, `useSortedClasses` (Tailwind class sorting), and `useImportType`. CSS files excluded from Biome's CSS parser since Tailwind 4 syntax (`@theme`, `@custom-variant`) isn't supported by the current parser.
-- Tailwind 4 with CSS-first config (`app/globals.css` uses `@import "tailwindcss"` + `@theme inline { ... }`). `postcss.config.mjs` registers `@tailwindcss/postcss`. Shadcn/UI baseline: `components.json` (New York style, slate base, RSC), `lib/utils.ts` exports `cn`, `tw-animate-css` imported.
-- Folder structure per SRS §5.3 (route groups: `(shop)`, `(auth)`, `(account)`, `(admin)`; api: `auth/[...nextauth]`, `products/[id]`, `cart`, `checkout`, `orders`, `webhooks/razorpay`, `webhooks/shipping`).
-- Minimal app shell: `app/layout.tsx` (Geist + Geist Mono via `next/font`, restrained metadata, viewport, theme color), `app/(shop)/page.tsx` (clean home placeholder), `app/error.tsx`, `app/not-found.tsx`, placeholder pages for `(auth)/login`, `(account)/account/orders`, `(admin)/admin/dashboard`. `app/api/auth/[...nextauth]/route.ts` re-exports Auth.js handlers.
-- **Prisma 7 full schema** in `prisma/schema.prisma` covering every entity in SRS §7 (User, Account, Session, VerificationToken, Address, Category, Brand, Product, ProductCategory, ProductVariant, ProductImage, ProductSpec, ProductAttribute, RelatedProduct, Warehouse, StockMovement, Cart, CartItem, Wishlist, WishlistItem, Order, OrderItem, OrderAddress, OrderEvent, Shipment, Payment, Refund, Return, ReturnItem, Review, ReviewMedia, ReviewVote, QnA, Coupon, CouponUsage, Banner, LoyaltyTransaction, Notification, SearchLog, AuditLog, Setting). All money fields are `Decimal(12,2)`. Soft-delete `deletedAt` on Order/Product/User. Optimistic-concurrency `version` on `ProductVariant`. Razorpay `gatewayPaymentId` is uniquely indexed for idempotent webhook handling.
-- Prisma 7 config split: `prisma.config.ts` holds connection URLs (uses `DIRECT_URL` for migrate); `lib/db.ts` builds `PrismaClient` with `@prisma/adapter-pg` (singleton-cached on `globalThis` outside production).
-- Auth.js v5 wired (`lib/auth.ts`): JWT sessions (30d), Prisma adapter, Google OAuth, Credentials (Zod-validated email/password with bcrypt verify, role/id propagated to session). `app/api/auth/[...nextauth]/route.ts` re-exports `GET`/`POST`. `proxy.ts` (Next.js 16's renamed middleware file) gates `/admin`, `/account`, `/checkout` and redirects to `/login?callbackUrl=...` for unauthenticated requests.
-- Husky pre-commit hook (`.husky/pre-commit`) runs `pnpm lint-staged` → `biome check --write` over staged files; `prisma format` over `prisma/schema.prisma`. (Note: `husky install` was skipped because `.git` doesn't exist yet — `prepare` script tolerates this with `|| true`. Will activate once `git init` runs.)
-- `.nvmrc` = 22, `.env.example` enumerates every variable from SETUP_GUIDE Step 5 + SRS §13 (Razorpay, Resend, Cloudinary, MSG91, Upstash, Sentry, PostHog, Turnstile, Shiprocket, GA4/GTM, Clarity, India Post pincode, Algolia stub for Phase 2). `.gitignore` covers Next/Prisma/Vercel/IDE artifacts. `.editorconfig` standardizes whitespace. `.vscode/{extensions,settings}.json` recommend Biome + Prisma + Tailwind plugins and disable ESLint default.
-- Moved `SRS.md` → `docs/SRS.md`. CLAUDE.md, PROGRESS.md, SETUP_GUIDE.md, MASTER_PROMPT.md remain at the repo root.
+- **Shadcn/UI primitives** — hand-written New York-style components in [components/ui](./components/ui/): `button`, `card`, `badge`, `skeleton`, `input`, `label`, `separator`, `sheet`, `dropdown-menu`, `accordion`, `checkbox`, `radio-group`. Radix peer deps installed (`@radix-ui/react-{slot,dialog,dropdown-menu,label,separator,accordion,checkbox,radio-group,tooltip,select}`).
+- **Money helpers** — [lib/money.ts](./lib/money.ts) with `toPaise`/`fromPaise`/`formatINR`/`formatINRWithPaise`/`formatNumberIN`/`discountPct`/`discountAmount`. Indian numbering grouping via `Intl.NumberFormat('en-IN')`. Accepts `Decimal | number | string` via duck-typed `toString`/`toNumber` (avoids the unstable `@prisma/client/runtime/library` import path).
+- **Cloudinary loader** — [lib/cloudinary.ts](./lib/cloudinary.ts) `cloudinaryLoader` for `next/image` (`f_auto,q_auto,w_*,c_limit`); plus `cloudinaryUrl` for OG images / structured data. Hardened against bare public IDs, full Cloudinary URLs, and arbitrary HTTPS placeholders.
+- **SEO helpers** — [lib/utils/seo.ts](./lib/utils/seo.ts) builds `Product`, `BreadcrumbList`, `ItemList`, `Organization` JSON-LD. Wired on Home (Org + ItemList), PLP (BreadcrumbList), PDP (Product + BreadcrumbList).
+- **Slug helper** — [lib/utils/slug.ts](./lib/utils/slug.ts) NFKD-normalised, 80-char-bounded slug builder for admin forms.
+- **`safe()` helper** — [lib/utils/safe.ts](./lib/utils/safe.ts) shared try/fallback wrapper used by every RSC page so the public catalog renders empty-state UI instead of HTTP 500 when the DB is unreachable.
+- **Zod validators** — [lib/validators/](./lib/validators/) `common` (cuid, slug, pincode, gstin, phone, paise, page/perPage), `category`, `brand`, `product` (with `superRefine` invariant checks: only one default variant, only one primary image, price ≤ MRP per variant), `search` (filters + suggest).
+- **Catalog services** — [lib/services/catalog.ts](./lib/services/catalog.ts) `getCategoryTree` / `getCategoryBySlug` / `getCategoryBreadcrumb` / `getCategoryDescendantIds` / `listProducts` / `getBrandFacets` / `getProductBySlug` / `getRelatedProducts` / `getTrendingProducts` / `getFeaturedCategories` / `getActiveBrands` / `searchProducts` / `searchSuggest` / `getBrandBySlug`. Home/category-tree/brand strip wrapped in `unstable_cache` with 300/600s revalidate and tagged for invalidation. Selections defined as `satisfies Prisma.ProductSelect` so generated Prisma types pass through cleanly.
+- **Phase 1 search** — pg_trgm-only (no tsvector yet). [prisma/migrations/manual/_search.sql](./prisma/migrations/manual/_search.sql) creates `pg_trgm` extension + GIN trigram indexes on `Product.name`, `Brand.name`, plus a `LOWER(shortDesc)` btree. `searchProducts` / `searchSuggest` use `prisma.$queryRaw` with `Prisma.sql` parameterised templates. Covers ~5k SKUs at p95 < 500ms; graduates to Algolia in Phase 2 per SRS Appendix D.
+- **API routes** — `GET /api/search` (with `?mode=suggest`), `GET /api/products` (PLP filters), `GET /api/products/[id]` (cuid OR slug). All inputs Zod-validated before any business logic.
+- **Shop layout** — [app/(shop)/layout.tsx](./app/(shop)/layout.tsx) wraps every shop route with [Header](./components/shop/header.tsx) (sticky, backdrop-blur, logo, primary nav from category tree, desktop search, account/cart icons), [Footer](./components/shop/footer.tsx) (3-column links + brand promise), and [MobileBottomNav](./components/shop/mobile-bottom-nav.tsx) (5-up Home/Categories/Search/Cart/Account, safe-area aware). [MobileMenu](./components/shop/mobile-menu.tsx) is a left-slide Sheet showing the full category tree on mobile.
+- **Catalog UI components** — [ProductCard](./components/shop/product-card.tsx) (responsive square image, brand kicker, name clamp, price + MRP strikethrough + discount badge + sold-out badge), [ProductGrid](./components/shop/product-grid.tsx), [Breadcrumbs](./components/shop/breadcrumbs.tsx) (semantic `nav`+`ol`, last item is `aria-current`), [Pagination](./components/shop/pagination.tsx) (windowed, prev/next, ellipsis), [SortMenu](./components/shop/sort-menu.tsx) (DropdownMenu, useTransition, URL-driven), [FilterSidebar](./components/shop/filters/filter-sidebar.tsx) (in-stock toggle, price range, brand checkboxes with counts; URL-driven, useTransition), [MobileFilterSheet](./components/shop/filters/mobile-filter-sheet.tsx) (left-slide Sheet wrapping the same FilterSidebar). PDP-specific: [ProductGallery](./components/shop/product-gallery.tsx) (thumb rail flips between row/col layout, click-to-swap main image, priority on hero), [VariantSelector](./components/shop/variant-selector.tsx) (groups variants by attribute axes — color/storage/RAM/etc., disables out-of-stock pills), [PdpActions](./components/shop/pdp-actions.tsx) (price + MRP + discount + stock state + add-to-cart + buy-now + save-to-wishlist), [PincodeCheck](./components/shop/pincode-check.tsx) (calls `https://api.postalpincode.in` for Phase 1 — TODO swaps to internal `/api/serviceability` in Sprint 4), [SpecsAccordion](./components/shop/specs-accordion.tsx) (multi-open accordion grouped by spec group), [StickyCta](./components/shop/sticky-cta.tsx) (mobile-only sticky band above the bottom nav).
+- **Public pages**:
+  - **Home** ([app/(shop)/page.tsx](./app/(shop)/page.tsx)) — RSC, `revalidate = 300`. Hero (text + placeholder media), 8 featured categories, trending products grid, brand strip. Org + ItemList JSON-LD.
+  - **All categories** ([app/(shop)/category/page.tsx](./app/(shop)/category/page.tsx)) — RSC, `revalidate = 600`. Tree + breadcrumb.
+  - **Category PLP** ([app/(shop)/category/\[...slug\]/page.tsx](./app/(shop)/category/[...slug]/page.tsx)) — RSC, `revalidate = 300`. Catch-all slug, walks category breadcrumb, scopes products to category + descendants, filter sidebar (desktop sticky, mobile sheet), sort menu, paginated grid. BreadcrumbList JSON-LD. Per-category brand facets.
+  - **PDP** ([app/(shop)/products/\[slug\]/page.tsx](./app/(shop)/products/[slug]/page.tsx)) — RSC, `revalidate = 3600`. Gallery + variant selector + add-to-cart + pincode + warranty + box contents + description + specs accordion + related strip. Sticky mobile CTA. Product + BreadcrumbList JSON-LD with `availability` derived from the default variant's stock.
+  - **Search** ([app/(shop)/search/page.tsx](./app/(shop)/search/page.tsx)) — `dynamic = 'force-dynamic'`. `?q=...` runs `searchProducts` (pg_trgm + ILIKE). `robots: { index: false }`. Empty-query state, no-results state, results grid.
+- **Loading / not-found** — [app/(shop)/loading.tsx](./app/(shop)/loading.tsx) (8-tile grid skeleton), [app/(shop)/products/\[slug\]/loading.tsx](./app/(shop)/products/[slug]/loading.tsx) (PDP skeleton), [app/(shop)/products/\[slug\]/not-found.tsx](./app/(shop)/products/[slug]/not-found.tsx), [app/(shop)/category/\[...slug\]/not-found.tsx](./app/(shop)/category/[...slug]/not-found.tsx).
+- **Admin scaffolding** (basic, read-only) — [app/(admin)/admin/layout.tsx](./app/(admin)/admin/layout.tsx) (sidebar nav + content), updated [dashboard](./app/(admin)/admin/dashboard/page.tsx) with live counts (products/categories/brands/orders/customers), and read-only tables for [products](./app/(admin)/admin/products/page.tsx), [categories](./app/(admin)/admin/categories/page.tsx), [brands](./app/(admin)/admin/brands/page.tsx). Full CRUD UI deferred to Sprint 1 polish.
+- **Seed data** — [prisma/seed.ts](./prisma/seed.ts) idempotent upserts: 6 categories (smartphones / laptops / audio / wearables / smart-home / gaming), 6 brands (Apple, Samsung, Sony, OnePlus, Boat, Dell), 8 products with variants/specs and a placeholder image. Wired via `pnpm db:seed` (`tsx prisma/seed.ts`) and `prisma.config.ts` (`migrations.seed`). `tsx` added as dev dep.
 
 ### Verification
 
 | Command | Result |
 |---|---|
-| `npx prisma validate` | ✅ "The schema at prisma\\schema.prisma is valid 🚀" |
 | `pnpm typecheck` (`tsc --noEmit`) | ✅ exit 0, zero errors |
-| `pnpm lint` (`biome lint .`) | ✅ exit 0, zero errors (warnings auto-fixed via `biome check --write`) |
-| `pnpm dev` | ✅ Next.js 16.2.6 (Turbopack) ready on http://localhost:3000; `GET /` → HTTP 200 (23 KB) |
+| `pnpm lint` (`biome lint .`) | ✅ exit 0, zero errors (2 nursery `noArrayIndexKey` warnings on intentionally-static skeleton/pagination keys — accepted) |
+| `pnpm prisma validate` | ✅ schema unchanged from Sprint 0; still valid |
+| `pnpm dev` | ⏸️ not booted this session — no `.env.local` yet. Pages use `safe()` wrappers so they should render empty-state without DB; visual QA pending DB connect |
 
-### Up next
+### Up next — to take Sprint 1 from code-complete to merged
 
-**Sprint 1 — Catalog (Home, PLP, PDP).** Acceptance criteria already enumerated below. Before starting:
-1. Make sure `.env.local` exists locally (copy from `.env.example`) with at least `DATABASE_URL` + `DIRECT_URL` filled in (Neon free tier is enough).
-2. Run `git init` + `pnpm prepare` once, so Husky activates.
-3. Run `pnpm prisma migrate dev --name init` to create the first migration against your Neon `local`/`dev` branch.
+1. Create `.env.local` from `.env.example` and fill in `DATABASE_URL` + `DIRECT_URL` (Neon free tier).
+2. `git init` + `pnpm prepare` if not already done, so Husky activates.
+3. `pnpm prisma migrate dev --name init` — first migration against the schema.
+4. `psql "$DIRECT_URL" -f prisma/migrations/manual/_search.sql` — adds pg_trgm + indexes used by search.
+5. `pnpm db:seed` — populates the 6 categories / 6 brands / 8 products from the seed.
+6. `pnpm dev` — visually QA Home / `/category/smartphones` / `/products/iphone-15-pro` / `/search?q=iphone` end-to-end on mobile + desktop.
+7. Lighthouse mobile pass: Perf ≥ 85, A11y ≥ 95, SEO ≥ 95 on Home / PLP / PDP.
+8. Tick off the remaining Sprint 1 acceptance bullets below, flip the sprint to DONE, open the PR per the per-sprint workflow at the top of this file.
+
+**Sprint 1 polish backlog** (deferred from this session, still inside Sprint 1):
+- Admin product/category/brand **create/edit forms** (server actions + RHF + Zod). Read-only tables landed; mutations did not.
+- POST/PATCH/DELETE `/api/admin/{products,categories,brands}` routes (Zod validators are written, server actions can reuse them).
+- `app/sitemap.ts` + `app/robots.ts` (Sprint 5 also touches these — earlier is fine).
+- Search suggest in the header (debounced fetch to `/api/search?mode=suggest`).
+- Hero image asset (currently a CSS gradient placeholder).
+- Cloudinary credentials on Vercel preview.
 
 ### Blockers
 
-- None for the bootstrap.
-- For Sprint 1 we'll need Cloudinary credentials in `.env.local` (free tier). MSG91 (DLT) and Razorpay (KYC) take 1 week and 1–3 days respectively — start those flows now in parallel; they're not on the critical path until Sprint 2 (auth OTP) and Sprint 4 (checkout).
+- DB not yet provisioned locally. Public catalog pages all degrade gracefully via `safe()` so the app boots without a DB, but real visual + Lighthouse verification is blocked on Neon connection.
+- MSG91 (DLT) and Razorpay (KYC) flows still need to be started — not on Sprint 1's critical path but Sprint 2 (OTP) and Sprint 4 (checkout) will block on them.
 
 ### Decisions made this session
 
-All captured in §Decisions log below — adds three new entries since the file was first created:
-- **Linter = Biome** (over ESLint + Prettier).
-- **Auth.js v5 = `next-auth@5.0.0-beta.31`** pinned exactly.
-- **Prisma 7 driver-adapter pattern**: `prisma.config.ts` + `@prisma/adapter-pg` (using plain `pg`); switch to `@prisma/adapter-neon` later if Vercel cold-starts demand it.
-- **TS 6**: removed deprecated `baseUrl`; `paths` resolves relative to the `tsconfig.json` location instead.
-- **Next.js 16**: use `proxy.ts` not `middleware.ts` (Next.js 16 deprecation).
-- **Biome CSS parsing disabled** — Tailwind 4 directives like `@theme`, `@custom-variant` aren't recognized by the current Biome CSS parser; we lint TS/JS/JSON only.
-- **`@types/bcryptjs` removed** — bcryptjs ships its own types since v3.
+- **Search starts at pg_trgm** (no generated tsvector column in Phase 1). Reason: schema already shipped, generated columns require extra migration discipline, and trigram alone covers typo-tolerant prefix/substring search up to ~5k SKUs cleanly. Graduate to tsvector or Algolia when p95 > 500ms.
+- **Manual SQL bootstrap for pg_trgm** (`prisma/migrations/manual/_search.sql`) rather than `previewFeatures = ["postgresqlExtensions"]`. Lower coupling to Prisma's preview feature lifecycle. The script is idempotent (`CREATE EXTENSION IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`) so re-runs are safe.
+- **Accent colour: deferred (slate neutral only).** SRS leaves accent "TBD per brand kit." Sprint 1 ships entirely on the slate palette + semantic colours (success/warning/destructive/info) — no chromatic accent decoration. Pick the accent during Sprint 1 polish once a logo/wordmark exists.
+- **Pincode lookup hits India Post directly from the client.** Reason: Phase 1 has no `/api/serviceability` yet (Sprint 4). India Post's endpoint is public, doesn't need an API key, and CORS-allows browsers. Marked `TODO(integration)` in `pincode-check.tsx`.
+- **Money helpers stop importing `Decimal`** from `@prisma/client/runtime/library`. The path moved between Prisma 6 and 7 betas and we hit a TS module-resolution failure. Helpers now accept any `{ toString(): string; toNumber?(): number }` — Prisma's Decimal already satisfies that, plus plain numbers and strings. Future Decimal arithmetic that genuinely needs the class can `import { Prisma } from '@prisma/client'` and use `Prisma.Decimal`.
+- **Validator `superRefine` invariants extracted** (`productInvariants` helper). Zod 4's `_def.schema` API is gone, so we can't `partial()` on a refined schema. Splitting the core object schema from the refinement lets us produce both `createProductSchema` (full + refined) and `updateProductSchema` (partial + refined skip when relevant fields absent) cleanly.
+- **Pages wrapped in a shared `safe()` fallback** so the public site degrades to empty-state UI instead of HTTP 500 when the DB is unreachable. Kept narrow — only catches read paths and only at the page boundary; service code still throws.
 
 ---
 
@@ -174,20 +190,20 @@ All captured in §Decisions log below — adds three new entries since the file 
 ---
 
 ### Sprint 1 — Catalog (Home, PLP, PDP)
-**Status:** NOT_STARTED
+**Status:** IN_PROGRESS — code complete, awaiting DB wiring + visual QA + Lighthouse pass
 **Relevant SRS:** §6.2, §6.3 (Phase-1 Postgres search), §10, §11
 
-- [ ] Install Shadcn/UI components needed for Sprint 1 (`pnpm dlx shadcn@latest add button card input label sheet dropdown-menu skeleton badge separator`)
-- [ ] Category and Brand admin CRUD (basic — full UI later)
-- [ ] Product admin CRUD (title, slug, brand, description, MRP, selling price, GST %, HSN, country of origin, BEE rating, hazmat flags, status, images, specs, variants)
-- [ ] Public **Home** page — hero, category tiles, deal-of-day strip, trending, brand strip, newsletter (RSC, ISR 5min)
-- [ ] Public **Category PLP** — `/category/[...slug]`, faceted filters via search params, sort, pagination, breadcrumbs (RSC + ISR)
-- [ ] Public **PDP** — `/products/[slug]`, gallery, variant selector, pincode check, price breakdown, Add to Cart / Buy Now, sticky mobile CTA, specs accordion, related strip, JSON-LD Product+Offer (RSC + ISR 1hr, on-demand revalidate on price/stock change)
-- [ ] Postgres-based search via `pg_trgm` + `tsvector` + `/api/search`
-- [ ] `next/image` + Cloudinary loader for all product imagery
-- [ ] Mobile bottom nav (Home/Categories/Search/Cart/Account)
-- [ ] Skeletons + designed empty/error states
-- [ ] Lighthouse: Perf ≥ 85 mobile, A11y ≥ 95, SEO ≥ 95 on Home, PLP, PDP
+- [x] Shadcn/UI components needed for Sprint 1 — hand-written into `components/ui/` (button, card, input, label, sheet, dropdown-menu, skeleton, badge, separator, accordion, checkbox, radio-group). Radix peer deps installed.
+- [ ] Category and Brand admin CRUD (basic — full UI later) — read-only tables done, create/edit forms deferred to Sprint 1 polish
+- [ ] Product admin CRUD (title, slug, brand, description, MRP, selling price, GST %, HSN, country of origin, BEE rating, hazmat flags, status, images, specs, variants) — read-only table done, full create/edit form deferred to Sprint 1 polish (Zod schemas already in place)
+- [x] Public **Home** page — hero, category tiles, trending products, brand strip (RSC, ISR 5min). Newsletter form deferred (no Resend list yet).
+- [x] Public **Category PLP** — `/category/[...slug]`, faceted filters via search params, sort, pagination, breadcrumbs (RSC + ISR 5min)
+- [x] Public **PDP** — `/products/[slug]`, gallery, variant selector, pincode check, price breakdown, Add to Cart / Buy Now (UI only — wired to actual cart in Sprint 3), sticky mobile CTA, specs accordion, related strip, JSON-LD Product + BreadcrumbList (RSC + ISR 1hr; on-demand revalidate to land in Sprint 1 polish once admin mutations exist)
+- [x] Postgres-based search — pg_trgm path live (`/api/search` + `searchProducts`/`searchSuggest`). tsvector graduation deferred until SKU count crosses ~5k.
+- [x] `next/image` + Cloudinary loader for all product imagery (`lib/cloudinary.ts`, used by ProductCard, ProductGallery, Home tiles, all-categories)
+- [x] Mobile bottom nav (Home/Categories/Search/Cart/Account, safe-area aware)
+- [x] Skeletons + designed empty/error states (`loading.tsx` for shop root + PDP, `not-found.tsx` for products + categories, empty-states on Home/PLP/Search)
+- [ ] Lighthouse: Perf ≥ 85 mobile, A11y ≥ 95, SEO ≥ 95 on Home, PLP, PDP — to be measured after the dev server boots against Neon
 
 **Acceptance:** Customer can browse Home → Category → PDP without login. Search returns results. Lighthouse passes thresholds.
 
@@ -284,3 +300,9 @@ All captured in §Decisions log below — adds three new entries since the file 
 | 2026-05-08 | **Next.js 16 — `proxy.ts` (not `middleware.ts`)** | Next.js 16 renamed the file convention from `middleware` to `proxy`. The exported `auth` callback signature is unchanged. |
 | 2026-05-08 | **Biome CSS parsing disabled (TS/JS/JSON only)** | Biome's CSS parser doesn't yet recognize Tailwind 4 directives (`@theme`, `@custom-variant`, `@layer`). Linting CSS would only produce noise. Re-enable when Biome ships Tailwind 4 support. |
 | 2026-05-08 | **Removed `@types/bcryptjs`** | Deprecated stub — bcryptjs ships its own types since v3. |
+| 2026-05-08 | **Sprint 1 search = pg_trgm only** (no tsvector yet) | Trigram covers typo-tolerant prefix/substring search up to ~5k SKUs cleanly, and `searchVector` in the schema can stay unused for Phase 1. Graduate to a generated tsvector column or Algolia when p95 search latency exceeds 500ms or recall starts to suffer. |
+| 2026-05-08 | **pg_trgm bootstrapped via manual SQL** (`prisma/migrations/manual/_search.sql`) | Avoids coupling to Prisma's `previewFeatures = ["postgresqlExtensions"]`, which is still preview-flagged. Script is idempotent so re-runs are safe across environments. |
+| 2026-05-08 | **Money helpers do not import `Decimal` from `@prisma/client/runtime/library`** | The path moved between Prisma 6 and 7 betas and broke TS module resolution. Helpers now duck-type any `{ toString(): string; toNumber?(): number }` — Prisma's Decimal already satisfies that, plus plain numbers and strings. Real Decimal arithmetic should `import { Prisma } from '@prisma/client'` and use `Prisma.Decimal`. |
+| 2026-05-08 | **Pincode lookup hits India Post directly from the client** | Phase 1 has no `/api/serviceability` (Sprint 4). The India Post endpoint is public, doesn't need an API key, and CORS-allows browsers. Marked `TODO(integration)` so Sprint 4 can swap to the internal serviceability route. |
+| 2026-05-08 | **Public RSC pages use a shared `safe()` fallback** so the catalog renders empty-state UI instead of HTTP 500 when the DB is unreachable | Lets the dev server boot and the marketing shell stay reviewable before Neon credentials exist. Kept narrow — only catches read paths at the page boundary; service code still throws so failures surface in logs. |
+| 2026-05-08 | **Sprint 1 ships on slate-only**, no chromatic accent | SRS leaves accent "TBD per brand kit." Slate + semantic state colours (success/warning/destructive/info) are enough for clean Phase-1 polish. Pick the accent during Sprint 1 polish once a logo/wordmark exists. |
