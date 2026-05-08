@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { passwordResetLimiter } from '@/lib/redis';
 import { sendEmail } from '@/lib/resend';
 import { issuePasswordResetToken } from '@/lib/services/auth-tokens';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { appUrl, getClientIp } from '@/lib/utils/request';
 import { forgotPasswordSchema } from '@/lib/validators/auth';
 
@@ -16,9 +17,18 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
-  const { email } = parsed.data;
+  const { email, turnstileToken } = parsed.data;
+  const ip = getClientIp(req);
 
-  const rl = await passwordResetLimiter.limit(`${getClientIp(req)}:${email}`);
+  const tsResult = await verifyTurnstile({ token: turnstileToken ?? null, ip });
+  if (!tsResult.success) {
+    return NextResponse.json(
+      { error: 'Bot verification failed. Please try again.' },
+      { status: 400 },
+    );
+  }
+
+  const rl = await passwordResetLimiter.limit(`${ip}:${email}`);
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 });
   }

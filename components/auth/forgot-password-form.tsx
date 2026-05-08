@@ -1,9 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FieldError, FormError, FormSuccess } from '@/components/auth/auth-card';
+import { TurnstileWidget } from '@/components/auth/turnstile-widget';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,8 @@ import { type ForgotPasswordInput, forgotPasswordSchema } from '@/lib/validators
 export function ForgotPasswordForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const onTurnstileVerify = useCallback((token: string | null) => setTurnstileToken(token), []);
   const {
     register,
     handleSubmit,
@@ -27,7 +30,7 @@ export function ForgotPasswordForm() {
     const res = await fetch('/api/auth/forgot-password', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, turnstileToken }),
     });
     const data: { error?: string; message?: string } = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -53,6 +56,8 @@ export function ForgotPasswordForm() {
         />
         <FieldError message={errors.email?.message} />
       </div>
+
+      <TurnstileWidget onVerify={onTurnstileVerify} />
 
       <Button type="submit" className="w-full" disabled={isSubmitting || !!success}>
         {isSubmitting ? 'Sending…' : 'Send reset link'}

@@ -2,10 +2,11 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FieldError, FormError, FormSuccess } from '@/components/auth/auth-card';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
+import { TurnstileWidget } from '@/components/auth/turnstile-widget';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,8 @@ import { type RegisterInput, registerSchema } from '@/lib/validators/auth';
 export function RegisterForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const onTurnstileVerify = useCallback((token: string | null) => setTurnstileToken(token), []);
   const {
     register,
     handleSubmit,
@@ -40,7 +43,7 @@ export function RegisterForm() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, turnstileToken }),
     });
     const data: { error?: string; message?: string } = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -127,6 +130,8 @@ export function RegisterForm() {
         </Label>
       </div>
       <FieldError message={errors.acceptTerms?.message} />
+
+      <TurnstileWidget onVerify={onTurnstileVerify} />
 
       <Button type="submit" className="w-full" disabled={isSubmitting || !!success}>
         {isSubmitting ? 'Creating account…' : 'Create account'}

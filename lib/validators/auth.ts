@@ -25,6 +25,7 @@ export const registerSchema = z
     password: passwordSchema,
     confirmPassword: z.string(),
     acceptTerms: z.literal(true, { message: 'You must accept the Terms & Privacy Policy' }),
+    turnstileToken: z.string().min(1).max(2048).nullish(),
   })
   .refine((d) => d.password === d.confirmPassword, {
     path: ['confirmPassword'],
@@ -38,6 +39,7 @@ export const loginSchema = z.object({
 
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
+  turnstileToken: z.string().min(1).max(2048).nullish(),
 });
 
 export const resetPasswordSchema = z
