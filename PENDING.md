@@ -4,6 +4,29 @@
 
 ---
 
+## Sprint 5B — finish verification before declaring DONE
+
+The branch `feature/sprint-5-email-programme` is code-complete (typecheck + lint clean). One new model (`CartReminder`) lands in the next migration; otherwise the changes are template + service + cron-route additions and two surgical wiring edits.
+
+### A. Verification (blocks `IN_PROGRESS → DONE`)
+
+- [ ] **Migration**: `pnpm prisma migrate dev --name init` (or `--name sprint-5-cart-reminders` if rolling Sprint 5B as its own migration once the initial one already exists). Adds the `CartReminder` table.
+- [ ] **`pnpm build`** — first production build with the four new email templates + the cron route compiled. Cron route pins `runtime = 'nodejs'` for `node:crypto.timingSafeEqual`.
+- [ ] **`pnpm dev` smoke — order shipped + delivered**: place an order (Sprint 4 path), sign in as `SUPER_ADMIN`, walk it through CONFIRMED → PROCESSING → SHIPPED → OUT_FOR_DELIVERY → DELIVERED. Watch stdout for `[email:dev] →` logs at SHIPPED and DELIVERED. Confirm the customer-facing `/account/orders/<num>` timeline shows the events.
+- [ ] **`pnpm dev` smoke — refund**: replay a `refund.processed` webhook against `/api/webhooks/razorpay` for a `CAPTURED` payment using the Sprint 4 hand-crafted-HMAC pattern. Confirm `[email:dev] →` log fires with the refund amount + payment method label. Replay the same event a second time — confirm zero new emails (idempotency: existing-status early-return inside the TX skips the `justProcessed` flag).
+- [ ] **`pnpm dev` smoke — cart abandonment**: build a cart while signed in, edit `lib/services/cart-abandonment.ts` `TIERS` thresholds to `[0, 0, 0]` for the smoke run, POST to `/api/cron/cart-abandonment`. Confirm a single `[email:dev] →` log per tier per cart. Run the cron a second time without changing the cart — confirm zero new emails (the `reminders: { none: { tier } }` filter + the `@@unique([cartId, tier])` constraint). Reset `TIERS` after the test.
+- [ ] **Bearer auth on `/api/cron/cart-abandonment`**: set `CRON_SECRET="test123"` in `.env.local`, send a POST with `Authorization: Bearer test123` — succeeds. Send a POST without the header — `401`. Send a POST with `Authorization: Bearer wrong` — `401`.
+- [ ] **Resend rendering smoke**: render each new email locally with `react-email-preview` (or via the Resend dashboard's preview tool) and confirm the heading / body / CTA / footer all look right on desktop + mobile widths. Specifically check the cart-abandoned template across `tier=1`, `tier=2`, `tier=3` so the copy switching reads cleanly.
+
+### B. Operational follow-ups (blocks launch, not Sprint 5B merge)
+
+- [ ] **Provision QStash credentials** (`QSTASH_URL`, `QSTASH_TOKEN`) and create a QStash schedule that POSTs `https://<production>/api/cron/cart-abandonment` every 15 minutes with the `Authorization: Bearer <CRON_SECRET>` header. Or, alternatively, add a `vercel.json` `crons` entry for the same route — Vercel Cron auto-injects the bearer header from `CRON_SECRET`. Pick one, document the choice.
+- [ ] **Set `CRON_SECRET`** in Vercel preview / staging / production env vars. Generate via `openssl rand -base64 32`.
+- [ ] **Resend domain verification**: replace the `onboarding@resend.dev` fallback `from` address with a verified production sender once the Resend domain is provisioned (`RESEND_FROM_EMAIL` env var is already wired through `lib/resend.ts`). Add SPF/DKIM records on the production domain.
+- [ ] **Monitoring**: surface the cron's `summary.totalSent` to Sentry / a logging dashboard once Sprint 5D wires those. For now, the response JSON is the only signal.
+
+---
+
 ## Sprint 5A — finish verification before declaring DONE
 
 The branch `feature/sprint-5-seo-compliance` is code-complete (typecheck + lint clean). No schema changes, no third-party creds required for this slice. The verification gate is the production build + a manual smoke of the new public pages and sitemap/robots routes.
