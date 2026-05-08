@@ -131,10 +131,10 @@ The branch `feature/sprint-2-auth` was merged into `develop` (commit `0e5556f`);
 - [ ] **Phone + OTP signup** (SRS §6.1.1) — blocked on MSG91 DLT registration (~1 week lead). `otpLimiter` is wired so the new `/api/auth/otp/{request,verify}` routes can drop in cleanly.
 - [ ] **2FA setup** (SRS §6.11) — Phase-2 polish, not in Sprint 2 acceptance.
 - [ ] **Real Resend sender + DKIM/SPF** on the production domain. Currently any non-empty `RESEND_API_KEY` engages the SDK; a verified sending domain ships before launch.
-- [ ] **Cloudflare Turnstile** on `/register` and `/forgot-password` (env vars are in place: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`).
+- [x] ~~**Cloudflare Turnstile**~~ — done; widget on `/register` and `/forgot-password`, server-side `siteverify` in `lib/turnstile.ts`, dev-fallback permissive when `TURNSTILE_SECRET_KEY` is unset, production fail-closed.
 - [ ] **Session refresh on the current device after `tokenVersion` bump** — change-password and revoke-all currently force `signOut()` for safety; a smoother path would call `useSession().update()` to re-mint the JWT in place.
 - [ ] **Login history vs active-sessions distinction** — Phase 1 collapses both into the same `UserLoginEvent` audit table. True per-session revoke would need a per-session `jti` claim + denylist; defer until checkout-grade stakes warrant it.
-- [ ] **Per-account lockout after 5 failed logins** (SRS §6.1.2) — currently we only rate-limit by IP. Per-account lockout needs a counter + 10-min cooldown in Redis keyed by `email`.
+- [x] ~~**Per-account lockout after 5 failed logins** (SRS §6.1.2)~~ — done; `lib/account-lockout.ts` increments a 10-min Redis counter on (existing user, password mismatch), wired into `lib/auth.ts` Credentials authorize. Increments only on real password mismatches (no enumerable side-channel for missing-user / blocked / OAuth-only).
 - [ ] **HIBP pwned-password check** (SRS §6.1.3 "optional") — `HIBP_USER_AGENT` env var is reserved; integration not wired.
 
 ### C. Operational follow-ups
