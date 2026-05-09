@@ -1,7 +1,10 @@
 -- Phase 1 search bootstrap.
 -- Run AFTER `pnpm prisma migrate dev --name init` against the same DATABASE_URL.
 --
---   psql "$DIRECT_URL" -f prisma/migrations/manual/_search.sql
+--   psql "$DIRECT_URL" -f prisma/sql/search.sql
+--
+-- Or against Docker:
+--   Get-Content prisma/sql/search.sql | docker exec -i naman-postgres psql -U naman -d naman_dev
 --
 -- Idempotent: safe to re-run. Adds pg_trgm + indexes used by lib/services/catalog.ts
 -- (searchProducts, searchSuggest) and the PLP `q=` filter. When SKU count crosses

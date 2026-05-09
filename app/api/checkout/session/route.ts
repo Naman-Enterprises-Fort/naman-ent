@@ -20,10 +20,17 @@ export async function POST(req: NextRequest) {
 
   const owner = await getCartOwner();
 
+  // Anonymous visitor with no cart cookie can't have a cart yet — short-
+  // circuit before reaching the placement TX (which would search by
+  // sessionId=null and match orphan carts).
+  if (!owner.userId && !owner.sessionId) {
+    return NextResponse.json({ error: 'Your cart is empty', code: 'EMPTY_CART' }, { status: 400 });
+  }
+
   try {
     const result = await startCheckoutSession({
       userId: owner.userId,
-      cartSessionId: owner.sessionId,
+      cartSessionId: owner.sessionId ?? '',
       data: parsed.data,
     });
     return NextResponse.json(result, { status: 201 });

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/shop/breadcrumbs';
-import { cloudinaryLoader } from '@/lib/cloudinary';
 import { getCategoryTree } from '@/lib/services/catalog';
 import { safe } from '@/lib/utils/safe';
 
@@ -51,7 +50,6 @@ export default async function AllCategoriesPage() {
                 {c.image && (
                   <div className="relative mt-2 h-16 self-end sm:h-20">
                     <Image
-                      loader={cloudinaryLoader}
                       src={c.image}
                       alt=""
                       fill

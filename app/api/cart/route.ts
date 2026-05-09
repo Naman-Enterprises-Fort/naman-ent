@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { addItem, CartError, clearCart, getCartView } from '@/lib/services/cart';
-import { getCartOwner } from '@/lib/services/cart-owner';
+import { getCartOwner, getOrCreateCartOwner } from '@/lib/services/cart-owner';
 import { addToCartSchema } from '@/lib/validators/cart';
 
 export const runtime = 'nodejs';
@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const owner = await getCartOwner();
+  // POST is a mutating route handler — safe to mint the guest cookie here
+  // (Next 16 forbids cookie writes from RSC layouts but allows them in
+  // route handlers and Server Actions).
+  const owner = await getOrCreateCartOwner();
   try {
     await addItem(owner, parsed.data);
   } catch (e) {

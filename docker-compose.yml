@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: naman-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: naman
+      POSTGRES_PASSWORD: naman_dev_password
+      POSTGRES_DB: naman_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - naman_pgdata:/var/lib/postgresql/data
+      # Auto-installs pg_trgm extension on first DB init.
+      - ./prisma/sql/extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U naman -d naman_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  naman_pgdata:

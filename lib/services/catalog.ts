@@ -261,8 +261,8 @@ export async function listProducts(
   let sorted = products;
   if (sort === 'price-asc' || sort === 'price-desc') {
     sorted = [...products].sort((a, b) => {
-      const ap = a.variants[0]?.price.toNumber() ?? Number.POSITIVE_INFINITY;
-      const bp = b.variants[0]?.price.toNumber() ?? Number.POSITIVE_INFINITY;
+      const ap = a.variants[0] ? Number(a.variants[0].price) : Number.POSITIVE_INFINITY;
+      const bp = b.variants[0] ? Number(b.variants[0].price) : Number.POSITIVE_INFINITY;
       return sort === 'price-asc' ? ap - bp : bp - ap;
     });
   }
@@ -399,7 +399,7 @@ export async function searchProducts(q: string, limit = 24) {
   if (!term) return [];
 
   // Two-pass: trigram match on name (typo-tolerant), then ILIKE fallback.
-  // Requires `CREATE EXTENSION IF NOT EXISTS pg_trgm` — see `prisma/migrations/manual/_search.sql`.
+  // Requires `CREATE EXTENSION IF NOT EXISTS pg_trgm` — see `prisma/sql/search.sql`.
   type Row = { id: string };
   const rows = await prisma.$queryRaw<Row[]>(Prisma.sql`
     SELECT p.id

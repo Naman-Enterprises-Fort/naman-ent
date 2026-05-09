@@ -15,7 +15,8 @@ import {
 
 export interface CartOwner {
   userId: string | null;
-  sessionId: string;
+  /** null = anonymous visitor with no cart cookie yet (Next 16: layouts can't mint). */
+  sessionId: string | null;
 }
 
 /** Find the active cart for this owner, or create an empty one. */
@@ -26,7 +27,16 @@ export async function getOrCreateCart(owner: CartOwner) {
       orderBy: { updatedAt: 'desc' },
     });
     if (userCart) return userCart;
-    return prisma.cart.create({ data: { userId: owner.userId, sessionId: owner.sessionId } });
+    return prisma.cart.create({
+      data: { userId: owner.userId, sessionId: owner.sessionId ?? null },
+    });
+  }
+  if (!owner.sessionId) {
+    // Anonymous visitor with no cookie yet — `getCartView` short-circuits
+    // before reaching here. Mutation routes use `getOrCreateCartOwner` which
+    // mints the cookie before invoking us, so reaching this point means a
+    // bug at the call site.
+    throw new Error('getOrCreateCart called with no userId and no sessionId');
   }
   const sessionCart = await prisma.cart.findUnique({ where: { sessionId: owner.sessionId } });
   if (sessionCart) return sessionCart;
@@ -152,6 +162,21 @@ function toLineView(item: RawCartItem): CartLineView {
 }
 
 export async function getCartView(owner: CartOwner): Promise<CartView> {
+  // Anonymous visitor with no cookie yet — return synthetic empty cart so
+  // public pages (Home, PDP, PLP) can render their mini-cart preview without
+  // forcing a DB write or a cookie mint (Next 16 forbids the latter from RSC).
+  if (!owner.userId && !owner.sessionId) {
+    const { totals } = computeCartTotals([]);
+    return {
+      cartId: '',
+      isGuest: true,
+      itemCount: 0,
+      active: [],
+      saved: [],
+      totals,
+    };
+  }
+
   const cart = await getOrCreateCart(owner);
   const items = await prisma.cartItem.findMany({
     where: { cartId: cart.id },
@@ -425,7 +450,14 @@ async function ensureCartTx(tx: Prisma.TransactionClient, owner: CartOwner) {
       orderBy: { updatedAt: 'desc' },
     });
     if (cart) return cart;
-    return tx.cart.create({ data: { userId: owner.userId, sessionId: owner.sessionId } });
+    return tx.cart.create({
+      data: { userId: owner.userId, sessionId: owner.sessionId ?? null },
+    });
+  }
+  if (!owner.sessionId) {
+    // Operating on an existing cart with no identity at all is a 404 to the
+    // caller (no cart cookie + not signed in = nothing to mutate).
+    throw new CartError('NOT_FOUND', 'Cart not found');
   }
   const cart = await tx.cart.findUnique({ where: { sessionId: owner.sessionId } });
   if (cart) return cart;

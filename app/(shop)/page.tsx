@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ProductGrid } from '@/components/shop/product-grid';
 import { Button } from '@/components/ui/button';
-import { cloudinaryLoader } from '@/lib/cloudinary';
 import { storeConfig } from '@/lib/content/store-config';
 import {
   getActiveBrands,
@@ -142,7 +141,6 @@ export default async function HomePage() {
                     {c.image ? (
                       <div className="relative mt-2 h-16 self-end sm:h-20">
                         <Image
-                          loader={cloudinaryLoader}
                           src={c.image}
                           alt=""
                           fill

@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { cloudinaryLoader } from '@/lib/cloudinary';
 import { discountPct, formatINR } from '@/lib/money';
 import type { ProductCard as ProductCardData } from '@/lib/services/catalog';
 
@@ -22,7 +21,6 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       <div className="relative aspect-square overflow-hidden bg-muted">
         {image?.url ? (
           <Image
-            loader={cloudinaryLoader}
             src={image.url}
             alt={image.alt ?? product.name}
             fill
@@ -60,7 +58,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         {variant && (
           <div className="mt-auto flex items-baseline gap-2">
             <span className="font-semibold text-base">{formatINR(variant.price)}</span>
-            {variant.price.toNumber() < variant.mrp.toNumber() && (
+            {Number(variant.price) < Number(variant.mrp) && (
               <span className="text-muted-foreground text-xs line-through">
                 {formatINR(variant.mrp)}
               </span>

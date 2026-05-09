@@ -20,17 +20,25 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
 
+  // Next 16 promoted typedRoutes out of `experimental`.
+  typedRoutes: true,
+
   experimental: {
-    typedRoutes: true,
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
 
   images: {
     formats: ['image/avif', 'image/webp'],
+    // Custom Cloudinary loader (Next 16 forbids passing function refs to
+    // <Image loader={...}> across the RSC boundary; the global loader file
+    // is the supported escape hatch).
+    loader: 'custom',
+    loaderFile: './lib/cloudinary-loader.ts',
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
 

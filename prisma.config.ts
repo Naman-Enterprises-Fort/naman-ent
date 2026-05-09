@@ -1,6 +1,12 @@
-import 'dotenv/config';
 import path from 'node:path';
+import { config as loadEnv } from 'dotenv';
 import { defineConfig } from 'prisma/config';
+
+// Load `.env.local` first (Next.js convention for local secrets), then fall
+// back to `.env`. `dotenv` doesn't override existing process env vars, so
+// values already in process.env (e.g. from Vercel) win over both files.
+loadEnv({ path: '.env.local' });
+loadEnv({ path: '.env' });
 
 /**
  * Prisma 7 moved connection URLs and migrate config out of `schema.prisma`

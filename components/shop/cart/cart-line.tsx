@@ -3,7 +3,6 @@
 import { Bookmark, BookmarkCheck, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { cloudinaryLoader } from '@/lib/cloudinary';
 import { useRemoveCartItem, useUpdateCartItem } from '@/lib/hooks/use-cart';
 import { formatINR, fromPaise } from '@/lib/money';
 import type { CartLineView } from '@/lib/services/cart';
@@ -60,7 +59,6 @@ export function CartLine({
       >
         {line.imageUrl ? (
           <Image
-            loader={cloudinaryLoader}
             src={line.imageUrl}
             alt={line.imageAlt ?? line.productName}
             fill

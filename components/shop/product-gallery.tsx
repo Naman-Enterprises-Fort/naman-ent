@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { cloudinaryLoader } from '@/lib/cloudinary';
 import { cn } from '@/lib/utils';
 
 type GalleryImage = {
@@ -53,7 +52,6 @@ export function ProductGallery({
                 )}
               >
                 <Image
-                  loader={cloudinaryLoader}
                   src={img.url}
                   alt={img.alt ?? `${productName} thumbnail ${i + 1}`}
                   fill
@@ -69,7 +67,6 @@ export function ProductGallery({
       <div className="relative order-1 aspect-square w-full overflow-hidden rounded-xl border bg-muted lg:order-2 lg:flex-1">
         <Image
           key={main.id}
-          loader={cloudinaryLoader}
           src={main.url}
           alt={main.alt ?? productName}
           fill

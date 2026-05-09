@@ -62,7 +62,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     gtin: product.gtin ?? undefined,
     mpn: product.mpn ?? undefined,
     offer: {
-      price: defaultVariant.price.toNumber(),
+      price: Number(defaultVariant.price),
       currency: 'INR',
       availability:
         defaultVariant.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
@@ -188,7 +188,7 @@ export default async function ProductPage({ params }: { params: Params }) {
 
       <StickyCta
         variantId={defaultVariant.id}
-        price={defaultVariant.price.toNumber()}
+        price={Number(defaultVariant.price)}
         stock={defaultVariant.stock}
       />
     </>

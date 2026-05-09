@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       razorpayOrderId: parsed.data.razorpay_order_id,
       razorpayPaymentId: parsed.data.razorpay_payment_id,
       razorpaySignature: parsed.data.razorpay_signature,
-      cartSessionId: owner.sessionId,
+      cartSessionId: owner.sessionId ?? '',
       userId: owner.userId,
     });
     return NextResponse.json(result);
