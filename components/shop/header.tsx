@@ -40,7 +40,7 @@ export async function Header({
             <Link
               key={c.id}
               href={`/category/${c.slug}`}
-              className="rounded-md px-3 py-2 font-medium text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-foreground"
+              className="whitespace-nowrap rounded-md px-3 py-2 font-medium text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-foreground"
             >
               {c.name}
             </Link>
