@@ -21,7 +21,30 @@ if (!url) {
 }
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
-const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1580910051074-3eb694886505?w=1200&q=80';
+// Per-product Unsplash photos — keeps the catalog visually distinct without
+// requiring a real photographer pass. Replace with Cloudinary uploads once the
+// upload widget is wired (see PENDING.md → Sprint 1 polish).
+const FALLBACK_IMG =
+  'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80&auto=format&fit=crop';
+
+const PRODUCT_IMAGES: Record<string, string> = {
+  'iphone-15-pro':
+    'https://images.unsplash.com/photo-1592286927505-1def25115558?w=1200&q=80&auto=format&fit=crop',
+  'galaxy-s24-ultra':
+    'https://images.unsplash.com/photo-1567581935884-3349723552ca?w=1200&q=80&auto=format&fit=crop',
+  'oneplus-12':
+    'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=1200&q=80&auto=format&fit=crop',
+  'sony-wh-1000xm5':
+    'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=1200&q=80&auto=format&fit=crop',
+  'boat-airdopes-141':
+    'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=1200&q=80&auto=format&fit=crop',
+  'dell-xps-13':
+    'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&q=80&auto=format&fit=crop',
+  'apple-watch-series-9':
+    'https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=1200&q=80&auto=format&fit=crop',
+  'playstation-5-slim':
+    'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=1200&q=80&auto=format&fit=crop',
+};
 
 const categories = [
   { name: 'Smartphones', slug: 'smartphones', position: 0 },
@@ -456,18 +479,22 @@ async function main() {
       });
     }
 
-    const existingImages = await prisma.productImage.count({ where: { productId: product.id } });
-    if (existingImages === 0) {
-      await prisma.productImage.create({
-        data: {
-          productId: product.id,
-          url: PLACEHOLDER_IMG,
-          alt: p.name,
-          isPrimary: true,
-          position: 0,
-        },
-      });
-    }
+    // Re-sync the primary image on every seed run — switching seed photos
+    // shouldn't require a manual DB cleanup. Non-primary images (added via the
+    // admin) are left untouched.
+    const imageUrl = PRODUCT_IMAGES[p.slug] ?? FALLBACK_IMG;
+    await prisma.productImage.deleteMany({
+      where: { productId: product.id, isPrimary: true },
+    });
+    await prisma.productImage.create({
+      data: {
+        productId: product.id,
+        url: imageUrl,
+        alt: p.name,
+        isPrimary: true,
+        position: 0,
+      },
+    });
 
     await prisma.productSpec.deleteMany({ where: { productId: product.id } });
     if (p.specs.length) {

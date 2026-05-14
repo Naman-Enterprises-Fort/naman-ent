@@ -104,10 +104,18 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-200/60 via-slate-100 to-slate-50 dark:from-slate-800/50 dark:via-slate-900 dark:to-slate-950" />
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-              Hero image · Cloudinary placeholder
-            </div>
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-slate-200/60 via-slate-100 to-slate-50 dark:from-slate-800/50 dark:via-slate-900 dark:to-slate-950"
+            />
+            <Image
+              src="https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=1600&q=80&auto=format&fit=crop"
+              alt="A clean flat-lay of consumer electronics — laptop, phone, watch, and earbuds — on a light slate surface."
+              fill
+              priority
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+            />
           </div>
         </section>
 
