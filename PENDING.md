@@ -108,8 +108,10 @@ The branch `feature/sprint-1-catalog` was merged into `develop` (commit `62e2f50
 - [x] ~~**On-demand revalidation**~~ — done across brand, category, and product mutations (`revalidateTag(... , 'max')` + `revalidatePath` for Home / `/category` / `/category/[...slug]` / `/products/[slug]` / `/search`).
 - [x] ~~**`app/sitemap.ts` + `app/robots.ts`**~~ — done in Sprint 5A.
 - [x] ~~**Header search suggest**~~ — done; debounced 150 ms fetch to `/api/search?mode=suggest`, ARIA combobox semantics, full keyboard nav.
-- [ ] **Hero image asset** — Home currently uses a CSS gradient placeholder. Either commission a hero illustration, or use a Cloudinary upload + the existing `cloudinaryUrl()` helper.
-- [ ] **Cloudinary creds on Vercel preview** — once a Cloudinary cloud is provisioned, set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + the API key/secret in Vercel preview env vars so seeded placeholder URLs resolve.
+- [x] ~~**Hero image asset**~~ — interim solved on `chore/ui-polish-and-missing-pages` (2026-05-14): Home renders a real Unsplash electronics flat-lay via `<Image priority>` instead of the "Cloudinary placeholder" gradient text. Swap to a Cloudinary-hosted commissioned hero whenever the upload widget lands in Phase 2 (no code change — just a `productImage`-style URL replacement in the home page or a CMS field once that exists).
+- [ ] **Cloudinary creds on Vercel preview** — once a Cloudinary cloud is provisioned, set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` + the API key/secret in Vercel preview env vars so seeded placeholder URLs resolve. (Note: Phase-1 seed now uses Unsplash URLs by default — Cloudinary creds matter when real product photos are uploaded.)
+- [x] ~~**Per-product seed images**~~ — landed on `chore/ui-polish-and-missing-pages` (2026-05-14): `prisma/seed.ts` ships a `PRODUCT_IMAGES` slug → Unsplash URL map plus `deleteMany({ isPrimary: true })`-then-create so reruns swap photos cleanly. All 8 seeded products now show distinct category-appropriate imagery on Home / PLP / PDP.
+- [x] ~~**Linked-from-UI 404s (admin sidebar + header heart icon)**~~ — landed on `chore/ui-polish-and-missing-pages` (2026-05-14): `/admin` redirects to `/admin/dashboard`; `/admin/customers` ships a real searchable Prisma-backed customer table; `/admin/coupons` + `/admin/reports` + `/account/wishlist` + `/account/returns` + `/account/reviews` ship polished Phase-2-preview placeholder pages. Global `app/not-found.tsx` redesigned with branded chrome + search + suggestion panel for true 404s.
 
 ---
 
