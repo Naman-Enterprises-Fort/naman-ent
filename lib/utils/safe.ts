@@ -9,7 +9,12 @@
 export async function safe<T, F = undefined>(fn: () => Promise<T>, fallback?: F): Promise<T | F> {
   try {
     return await fn();
-  } catch {
+  } catch (e) {
+    // Dev: log so the underlying failure surfaces in `pnpm dev` stdout
+    // instead of being silently swallowed by the page → notFound path.
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[safe] swallowed exception:', (e as Error)?.message ?? e);
+    }
     return fallback as F;
   }
 }

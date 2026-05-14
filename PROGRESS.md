@@ -91,9 +91,55 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 
 ## Last Session Summary
 
-**Date:** 2026-05-09
-**Sprint:** Sprint 2 polish — Auth hardening (per-account lockout + Cloudflare Turnstile)
-**Status:** CODE COMPLETE — typecheck + lint clean (same two pre-existing nursery warnings; no new ones); verification (lockout smoke against Upstash Redis, Turnstile end-to-end with a real site key) tracked in [PENDING.md](./PENDING.md). With this slice merged, the Phase-1 Sprint-1 + Sprint-2 polish backlogs are effectively closed (only Cloudinary widget + Phase-2 nice-to-haves remain). Sprint 5D stays intentionally deferred.
+**Date:** 2026-05-14
+**Sprint:** UI polish + missing-page fixes (chore branch: `chore/ui-polish-and-missing-pages`)
+**Status:** CODE COMPLETE — typecheck clean, `pnpm build` succeeds end-to-end, 48-route HTTP smoke run against `pnpm start` shows zero linked-from-UI 404s remaining (only truly-unknown URLs fall through to the new branded 404 page).
+
+### What this session was about
+
+The user opened `pnpm dev` after a long pause and every route except `/` returned 404. Root cause was a stuck Turbopack dev server (the `/privacy` compile started at 02:09 in the dev log and never completed; the same wedge was killing every other on-demand compile). Restarting against a fresh `pnpm build` + `pnpm start` proved the source tree was fine and surfaced the real Phase-1 polish gaps that were hiding behind the dev-server issue.
+
+### Done this session
+
+- **`/admin` root redirect** — [app/(admin)/admin/page.tsx](./app/(admin)/admin/page.tsx) does a server-side `redirect('/admin/dashboard')` so typing `/admin` in the URL bar no longer 404s for authenticated admins.
+- **`/admin/customers` real page** — [app/(admin)/admin/customers/page.tsx](./app/(admin)/admin/customers/page.tsx) ships a searchable customer table (email/name/phone, case-insensitive) with role/status badges (Blocked / Verified / Unverified), join date, last sign-in, order count, and `?page=` pagination at 25 rows/page. Gated by `requireRole('SUPER_ADMIN', 'CUSTOMER_SUPPORT')`.
+- **`/admin/coupons` + `/admin/reports` placeholders** — [coupons](./app/(admin)/admin/coupons/page.tsx) ships a Phase-2 preview card (percent + fixed discounts, category/product targeting, single-use codes, automatic vs manual) gated by `MARKETING_MANAGER` / `SUPER_ADMIN`. [reports](./app/(admin)/admin/reports/page.tsx) ships a Sprint-5 preview card (revenue trends, top products, conversion funnel, cohort + LTV) gated by `SUPER_ADMIN` / `ORDER_MANAGER`. Both replace silent 404s from the admin-sidebar links.
+- **`/account/wishlist` + `/account/returns` + `/account/reviews` placeholders** — three Phase-2 preview pages in [app/(account)/account/...](./app/(account)/account/) (each `requireSession()`-gated). Wishlist is the highest-traffic one — it's linked from the shop header heart icon, so the 404 there was directly user-facing. Returns surfaces a `support@naman-ent.example` mailto so customers can still file returns out-of-band until the self-service flow lands.
+- **Global 404 page redesign** — [app/not-found.tsx](./app/not-found.tsx) replaces the bare-bones centered text with a branded layout: Logo header, big "wrong turn" headline, working `<form action="/search">` search input, "Back to home" + "Browse all categories" CTAs, and a right-rail card suggesting Smartphones / Laptops / Audio / Wearables / All categories. Footer chrome with copyright + Made-in-India note. Stays standalone (no DB calls, no Shop layout) so it renders even when the catalog router has no match.
+- **Hero image** — [app/(shop)/page.tsx](./app/(shop)/page.tsx) replaces the `bg-gradient-to-br` placeholder card (`text-muted-foreground: "Hero image · Cloudinary placeholder"`) with a real Unsplash electronics flat-lay (`priority` loaded, alt text describes the composition). The slate gradient stays as a fallback layer behind the `<Image>` for first-paint.
+- **Per-product seed images** — [prisma/seed.ts](./prisma/seed.ts) replaces the single `PLACEHOLDER_IMG` (an iPhone-on-bed shot used for every product) with a `PRODUCT_IMAGES` map keyed by slug, plus a `FALLBACK_IMG` for any new SKU. The seed now `deleteMany({ isPrimary: true })`-then-create on every run so subsequent image-URL changes propagate without manual cleanup. Each of the 8 seeded products gets a category-appropriate Unsplash photo (verified 200-OK).
+- **Header nav "Smart Home" wrap fix** — [components/shop/header.tsx](./components/shop/header.tsx) adds `whitespace-nowrap` to the desktop category nav links so multi-word categories don't break into two lines under width pressure.
+- **Cloudinary loader handles Unsplash** — [lib/cloudinary-loader.ts](./lib/cloudinary-loader.ts) detects `images.unsplash.com` URLs and rewrites them with `?w={width}&q={quality}&auto=format&fit=crop` so `next/image`'s responsive widths flow through. Kills the "loader does not implement width" runtime warning. Cloudinary + Google avatars + GitHub avatars + the bare-public-id path are all left untouched.
+- **`safe()` dev logging** — [lib/utils/safe.ts](./lib/utils/safe.ts) now `console.warn`s the swallowed exception when `NODE_ENV !== 'production'` so future "why is this page rendering empty" debugging surfaces the underlying error in the dev terminal instead of getting silently fallback-and-forgotten.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `pnpm typecheck` (`tsc --noEmit`) | ✅ exit 0, zero errors |
+| `pnpm build` | ✅ exit 0 — all new routes (`/admin`, `/admin/customers`, `/admin/coupons`, `/admin/reports`, `/account/wishlist`, `/account/returns`, `/account/reviews`) listed in the route manifest |
+| `pnpm db:seed` | ✅ 6 categories / 6 brands / 8 products seeded with fresh per-product image URLs |
+| 48-route `curl` smoke against `pnpm start` | ✅ 18 public 200s, 9 account 302s (proxy → /login when unauthenticated), 9 admin 302s, 14 catalog 200s (`/category/*` + `/products/*`), `/random-nonsense-url` → 404 (renders the new branded 404) |
+| Browser visual QA (production build via Chrome MCP) | ✅ Home hero shows real Unsplash photo, header "Smart Home" stays on one line, all 8 products on Home + PLP show distinct images, PDPs (iPhone 15 Pro, Galaxy S24 Ultra, OnePlus 12, Sony WH-1000XM5) render real product imagery, 404 page shows the new branded layout |
+
+### Decisions made this session
+
+- **Production build, not dev**, for verification. The dev wedge that motivated the session showed that `pnpm dev` is unreliable for full-app smoke runs — Turbopack on-demand compilation can stall mid-route under certain conditions, leaving the impression that pages 404 when in fact the build artefact never finished. `pnpm build && pnpm start` is the canonical post-change verification gate, matching the existing PENDING.md verification language.
+- **Branded 404 with no DB dependency**. The global `app/not-found.tsx` deliberately renders without a Shop layout — no Header (which calls `getCategoryTree()`), no Footer, no cart fetch. A 404 page that itself depends on the DB is a worst-case failure mode (DB unreachable → 404 also 500s). The hand-rolled mini-header/footer keeps the page renderable from a fully-cold edge.
+- **Placeholder pages over removed links**. For `/account/wishlist`, `/admin/customers`, `/admin/coupons`, `/admin/reports` we shipped polished "Phase-2 / Sprint-5 preview" pages rather than removing the links from the header/sidebar. Removing the links would have meant rolling back the navigation contract that's been live since Sprint 1; the preview pages communicate roadmap intent and keep the navigation map stable. The customers page is real (it queries Prisma) because the schema + data are already there — only the UI was missing.
+- **Per-product images via seed, not via CMS**. PENDING.md's "Hero image asset" item nominally wanted Cloudinary-uploaded photos. Phase-1 polish doesn't justify the Cloudinary widget yet (Phase-2), so seeded Unsplash URLs are the interim. The Cloudinary loader continues to pass non-Cloudinary HTTPS URLs through (and now adds width params for Unsplash), so swapping to real Cloudinary uploads later is a per-product DB update — no code change.
+- **Hero image is Unsplash, not Cloudinary**. Same reasoning as above. The `<Image>` is marked `priority` so it counts for LCP; the slate gradient sits behind it as a graceful first-paint colour.
+- **Customers page query is `findMany` with full filtering**, no `unstable_cache`. The user-search use case is admin-only, low-volume, and demands fresh data (a CSR refresh after a customer registers should show that customer immediately). The route is `dynamic = 'force-dynamic'` for the same reason.
+- **`safe()` logs in dev, swallows in prod**. The original `safe()` masking was intentional ("DB unreachable → empty grid instead of 500"), but it makes RSC pages silently 404 / render empty when the underlying issue is a transient DB connection or a Prisma schema drift. The dev `console.warn` keeps the production posture identical while making local debugging faster.
+- **Branch is `chore/...`, not `feature/sprint-N-...`**. This session is bug-fix + polish across previously-shipped sprints, not a new sprint slice. Following the project's documented branch naming (CLAUDE.md §15: "For non-feature work, use the matching prefix: `fix/...`, `chore/...`, …").
+
+### Up next — to take this branch from code-complete to merged
+
+1. **Open PR `chore/ui-polish-and-missing-pages` → `develop`** with the conventional-commit history.
+2. **`pnpm dev` cold-start smoke** — fresh `.next/` clean + `pnpm dev` boot, click through Home / PLP / PDP / Cart / Login / Register / Privacy / 404 to confirm Turbopack on-demand compilation finishes for each route. The stuck-compile that motivated this session was an old `.next/dev` cache; the rebuild in this session should have busted it.
+3. **Auth-required visual QA** — register a test account, sign in, visit `/account/wishlist`, `/account/returns`, `/account/reviews` to confirm the placeholders render with the account sidebar and proper layout. Then bump the user to `SUPER_ADMIN` (manual SQL update) and click through `/admin`, `/admin/customers`, `/admin/coupons`, `/admin/reports` to confirm the admin sidebar links all resolve.
+4. **Lighthouse mobile on the new 404 page** — A11y ≥ 95 expected (no Perf or SEO threshold; 404 is `noindex` by default).
+5. **Squash-merge** via `gh pr merge --squash --delete-branch` once review is done.
 
 ### Done this session
 
@@ -138,6 +184,7 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 
 ### Previous sessions
 
+- **Sprint 2 polish — Auth hardening (per-account lockout + Cloudflare Turnstile)** shipped the 5-failures/10-min Redis-backed lockout wired into the Credentials authorize (only increments on existing-user / password-mismatch — no enumerable side-channel), the Cloudflare Turnstile server-side verifier + `TurnstileWidget` client component (lazy-load via `next/script`, explicit-render API), and mounted the widget on `/register` and `/forgot-password` with a permissive dev fallback and fail-closed production posture. With this slice, the Phase-1 Sprint-1 + Sprint-2 polish backlogs are effectively closed (only Cloudinary widget + Phase-2 nice-to-haves remain). Squash-merged via PR [#10](https://github.com/) (commit `3b0be2d`).
 - **Sprint 1 polish — Admin product CRUD** shipped the full create / edit / soft-archive lifecycle for products with a single-form variant + image + spec editor, FK-protected variant deletion (`VARIANT_IN_USE` 409 when carts/orders reference the variant), wholesale-replace for categories / images / specs, and on-demand revalidation across all catalog surfaces. Squash-merged via PR [#9](https://github.com/) (commit `c60f80b`).
 - **Sprint 1 polish — Brand + Category CRUD + search-suggest + pincode fix** shipped the admin Brand and Category create/edit/delete flows (with on-demand revalidation, slug auto-generation, parent cycle prevention), the desktop header search-suggest dropdown (debounced 150ms, full keyboard nav, ARIA combobox), and replaced the PDP pincode-check's Sprint-1-era India-Post-direct fallback with a call to the Sprint-4 `/api/serviceability` endpoint (surfacing metro same-day eligibility). Squash-merged via PR [#8](https://github.com/) (commit `d9b6865`).
 - **Sprint 5C — Shiprocket integration + StockMovement audit** shipped the Shiprocket REST client (fetch + module-scoped JWT cache), the shipping service that orchestrates create-order → assign-AWB → request-pickup with rank-based forward-only tracking-webhook updates, the `/api/webhooks/shiprocket` route (constant-time `x-api-key` auth), the `/api/shipping/rates` rate-quote proxy, customer-facing tracking display on `/account/orders/[orderNumber]`, real shipped-email data, and the `StockMovement` audit (deferred from Sprint 4) wired into `placeOrderForCheckout` / `cancelOrder` against a seeded default warehouse. Squash-merged via PR [#7](https://github.com/) (commit `f97000e`).

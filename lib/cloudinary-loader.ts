@@ -27,6 +27,14 @@ export default function cloudinaryLoader({ src, width, quality }: ImageLoaderPro
     return src.replace(/\/upload\/(?!.*\/upload\/)/, `/upload/${transforms}/`);
   }
 
+  // Unsplash supports `?w=&q=&auto=format` on every image URL — rewrite the
+  // query so next/image's responsive widths and quality flow through, and the
+  // "loader doesn't implement width" warning goes away.
+  if (src.startsWith('https://images.unsplash.com/')) {
+    const [base] = src.split('?');
+    return `${base}?w=${width}&q=${q}&auto=format&fit=crop`;
+  }
+
   if (/^https?:\/\//.test(src)) {
     return src;
   }
