@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: `%s · ${storeName}`,
   },
   description:
-    'Mobile-first electronics e-commerce — smartphones, laptops, audio, wearables, smart home, and more, with fast pan-India delivery.',
+    'Buy genuine and compatible printer ink cartridges, toner cartridges, and ink bottles for HP, Canon, Epson, Brother, Lexmark, and more — fast pan-India delivery and GST invoices.',
   applicationName: storeName,
   formatDetection: {
     telephone: false,

@@ -179,7 +179,15 @@ export async function getCartView(owner: CartOwner): Promise<CartView> {
 
   const cart = await getOrCreateCart(owner);
   const items = await prisma.cartItem.findMany({
-    where: { cartId: cart.id },
+    where: {
+      cartId: cart.id,
+      // Hide cart lines whose product was soft-archived or whose variant
+      // was deleted under them. Keeps stale items from old catalogs out of
+      // the user's view + out of totals. The CartItem rows stay in the DB —
+      // a Phase-2 cron can prune them once a product has been archived for
+      // >30 days.
+      variant: { product: { deletedAt: null, status: 'ACTIVE' } },
+    },
     orderBy: { createdAt: 'asc' },
     select: cartItemSelect,
   });
@@ -224,7 +232,13 @@ export async function getCartItemCount(owner: CartOwner): Promise<number> {
   });
   if (!cart) return 0;
   const agg = await prisma.cartItem.aggregate({
-    where: { cartId: cart.id, savedForLater: false },
+    where: {
+      cartId: cart.id,
+      savedForLater: false,
+      // Match `getCartView`'s filter so the header badge doesn't count items
+      // whose product was soft-archived.
+      variant: { product: { deletedAt: null, status: 'ACTIVE' } },
+    },
     _sum: { quantity: true },
   });
   return agg._sum.quantity ?? 0;

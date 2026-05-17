@@ -35,19 +35,19 @@ export async function Header({
 
         <Logo className="md:mr-2" />
 
-        <nav aria-label="Primary" className="hidden flex-1 items-center gap-1 md:flex">
-          {nav.slice(0, 6).map((c) => (
+        <nav aria-label="Primary" className="hidden items-center gap-0.5 md:flex">
+          {nav.slice(0, 5).map((c) => (
             <Link
               key={c.id}
               href={`/category/${c.slug}`}
-              className="whitespace-nowrap rounded-md px-3 py-2 font-medium text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-foreground"
+              className="whitespace-nowrap rounded-md px-2.5 py-2 font-medium text-muted-foreground text-sm transition-colors hover:bg-accent hover:text-foreground"
             >
               {c.name}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto hidden max-w-md flex-1 md:block">
+        <div className="ml-auto hidden min-w-[260px] max-w-md flex-1 md:block">
           <SearchBar size="sm" suggest />
         </div>
 

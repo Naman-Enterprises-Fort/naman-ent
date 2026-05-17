@@ -5,10 +5,10 @@ const sections = [
   {
     title: 'Shop',
     links: [
-      { label: 'Smartphones', href: '/category/smartphones' },
-      { label: 'Laptops', href: '/category/laptops' },
-      { label: 'Audio', href: '/category/audio' },
-      { label: 'Wearables', href: '/category/wearables' },
+      { label: 'Ink Cartridges', href: '/category/ink-cartridges' },
+      { label: 'Toner Cartridges', href: '/category/toner-cartridges' },
+      { label: 'Ink Bottles', href: '/category/ink-bottles' },
+      { label: 'Printers', href: '/category/inkjet-printers' },
     ],
   },
   {
@@ -38,7 +38,8 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <Logo />
           <p className="max-w-sm text-muted-foreground text-sm">
-            Mobile-first electronics for India. Genuine products, fast delivery, easy returns.
+            Genuine and compatible printer ink, toner, and cartridges for every major brand —
+            delivered fast across India.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">

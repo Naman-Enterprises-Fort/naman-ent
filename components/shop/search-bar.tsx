@@ -25,7 +25,7 @@ const SUGGEST_DEBOUNCE_MS = 150;
 export function SearchBar({
   initial,
   className,
-  placeholder = 'Search smartphones, laptops, audio, more...',
+  placeholder = 'Search ink, toner, cartridges, printers...',
   size = 'md',
   suggest = false,
 }: {

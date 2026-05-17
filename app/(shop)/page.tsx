@@ -18,7 +18,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Home',
   description:
-    'Genuine smartphones, laptops, audio, wearables, and smart-home gear, with fast pan-India delivery and easy returns.',
+    'Genuine printer ink cartridges, toner cartridges, and ink bottles for HP, Canon, Epson, Brother, and 14+ leading brands — with fast pan-India delivery, GST invoices, and easy returns.',
   alternates: { canonical: '/' },
 };
 
@@ -76,12 +76,13 @@ export default async function HomePage() {
               Phase 1 · India · Razorpay-secured
             </span>
             <h1 className="font-semibold text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
-              The electronics store, <br className="hidden sm:inline" />
-              built for India.
+              Genuine printer ink &amp; toner, <br className="hidden sm:inline" />
+              delivered fast across India.
             </h1>
             <p className="max-w-xl text-balance text-lg text-muted-foreground">
-              Genuine smartphones, laptops, audio, wearables, and smart-home gear. Fast pan-India
-              delivery, GST invoices, and a 7-day no-questions return.
+              Original and high-quality compatible cartridges from HP, Canon, Epson, Brother, and
+              14+ leading brands. GST invoices on every order, 7-day returns, and pan-India
+              delivery.
             </p>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               {HERO_BULLETS.map((b) => (
@@ -93,13 +94,13 @@ export default async function HomePage() {
             </ul>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link href="/category/smartphones">
-                  Shop smartphones
+                <Link href="/category/ink-cartridges">
+                  Shop ink cartridges
                   <ArrowRight aria-hidden className="size-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/search">Browse the store</Link>
+                <Link href="/category/toner-cartridges">Browse toner</Link>
               </Button>
             </div>
           </div>
@@ -110,7 +111,7 @@ export default async function HomePage() {
             />
             <Image
               src="https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=1600&q=80&auto=format&fit=crop"
-              alt="A clean flat-lay of consumer electronics — laptop, phone, watch, and earbuds — on a light slate surface."
+              alt="A clean workspace shot of a printer with ink and toner cartridges arranged beside it."
               fill
               priority
               sizes="(min-width: 768px) 50vw, 100vw"
@@ -143,24 +144,26 @@ export default async function HomePage() {
                 <li key={c.id}>
                   <Link
                     href={`/category/${c.slug}`}
-                    className="group flex aspect-[5/4] flex-col justify-between overflow-hidden rounded-lg border bg-card p-4 transition-shadow hover:shadow-md"
+                    className="group flex aspect-[5/4] flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md"
                   >
-                    <p className="font-medium text-sm">{c.name}</p>
                     {c.image ? (
-                      <div className="relative mt-2 h-16 self-end sm:h-20">
+                      <div className="relative flex-1 overflow-hidden bg-muted/40">
                         <Image
                           src={c.image}
                           alt=""
                           fill
-                          sizes="160px"
-                          className="object-contain object-right-bottom"
+                          sizes="(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-xs group-hover:text-foreground">
-                        Browse →
-                      </span>
+                      <div className="flex flex-1 items-end p-4">
+                        <span className="text-muted-foreground text-xs group-hover:text-foreground">
+                          Browse →
+                        </span>
+                      </div>
                     )}
+                    <p className="border-t bg-card px-3 py-2.5 font-medium text-sm">{c.name}</p>
                   </Link>
                 </li>
               ))}
@@ -205,9 +208,23 @@ export default async function HomePage() {
                 <li key={b.id}>
                   <Link
                     href={`/search?brand=${b.slug}`}
-                    className="flex h-20 items-center justify-center rounded-lg border bg-card font-medium text-sm transition-colors hover:bg-accent"
+                    aria-label={`Shop ${b.name}`}
+                    className="group flex h-20 items-center justify-center rounded-lg border bg-card transition-colors hover:bg-accent"
                   >
-                    {b.name}
+                    {b.logo ? (
+                      <span className="relative block h-10 w-3/4">
+                        <Image
+                          src={b.logo}
+                          alt={b.name}
+                          fill
+                          sizes="160px"
+                          className="object-contain transition-opacity group-hover:opacity-90"
+                          unoptimized
+                        />
+                      </span>
+                    ) : (
+                      <span className="font-medium text-sm">{b.name}</span>
+                    )}
                   </Link>
                 </li>
               ))}

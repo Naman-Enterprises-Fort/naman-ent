@@ -167,7 +167,15 @@ export async function placeOrderForCheckout(input: PlaceOrderInput): Promise<Pla
     if (!cart) throw new OrderError('EMPTY_CART', 'Your cart is empty');
 
     const items = await tx.cartItem.findMany({
-      where: { cartId: cart.id, savedForLater: false },
+      where: {
+        cartId: cart.id,
+        savedForLater: false,
+        // Mirror `getCartView`: skip lines whose product was soft-archived
+        // or whose variant was removed under us. Prevents "X is no longer
+        // available" failures when the user-visible cart had already hidden
+        // those rows.
+        variant: { product: { deletedAt: null, status: 'ACTIVE' } },
+      },
       orderBy: { createdAt: 'asc' },
       select: {
         id: true,

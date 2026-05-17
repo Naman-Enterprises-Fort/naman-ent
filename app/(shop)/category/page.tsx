@@ -9,7 +9,8 @@ export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: 'All categories',
-  description: 'Browse every product category — smartphones, laptops, audio, wearables, and more.',
+  description:
+    'Browse every product category — ink cartridges, toner cartridges, ink bottles, printers, and more.',
   alternates: { canonical: '/category' },
 };
 
@@ -37,9 +38,22 @@ export default async function AllCategoriesPage() {
             <li key={c.id}>
               <Link
                 href={`/category/${c.slug}`}
-                className="group flex aspect-[5/4] flex-col justify-between overflow-hidden rounded-lg border bg-card p-4 transition-shadow hover:shadow-md"
+                className="group flex aspect-[5/4] flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md"
               >
-                <div className="flex flex-col gap-1">
+                {c.image ? (
+                  <div className="relative flex-1 overflow-hidden bg-muted/40">
+                    <Image
+                      src={c.image}
+                      alt=""
+                      fill
+                      sizes="(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 bg-muted/30" />
+                )}
+                <div className="flex flex-col gap-0.5 border-t bg-card px-3 py-2.5">
                   <p className="font-medium text-sm">{c.name}</p>
                   {c.children.length > 0 && (
                     <p className="text-muted-foreground text-xs">
@@ -47,17 +61,6 @@ export default async function AllCategoriesPage() {
                     </p>
                   )}
                 </div>
-                {c.image && (
-                  <div className="relative mt-2 h-16 self-end sm:h-20">
-                    <Image
-                      src={c.image}
-                      alt=""
-                      fill
-                      sizes="160px"
-                      className="object-contain object-right-bottom"
-                    />
-                  </div>
-                )}
               </Link>
             </li>
           ))}

@@ -10,8 +10,8 @@ async function getStats() {
   try {
     const [productCount, categoryCount, brandCount, orderCount, userCount] = await Promise.all([
       prisma.product.count({ where: { deletedAt: null } }),
-      prisma.category.count(),
-      prisma.brand.count(),
+      prisma.category.count({ where: { isActive: true } }),
+      prisma.brand.count({ where: { isActive: true } }),
       prisma.order.count({ where: { deletedAt: null } }),
       prisma.user.count({ where: { deletedAt: null } }),
     ]);

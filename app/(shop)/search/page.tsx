@@ -1,8 +1,10 @@
 import { Search as SearchIcon } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Breadcrumbs } from '@/components/shop/breadcrumbs';
 import { ProductGrid } from '@/components/shop/product-grid';
 import { SearchBar } from '@/components/shop/search-bar';
+import { Button } from '@/components/ui/button';
 import { searchProducts } from '@/lib/services/catalog';
 import { safe } from '@/lib/utils/safe';
 
@@ -19,7 +21,8 @@ export async function generateMetadata({
   const q = typeof sp.q === 'string' ? sp.q : '';
   return {
     title: q ? `Search: ${q}` : 'Search',
-    description: 'Search the catalog for smartphones, laptops, audio, and more.',
+    description:
+      'Search the catalog for ink cartridges, toner cartridges, ink bottles, printers, and more.',
     robots: { index: false, follow: true },
   };
 }
@@ -55,16 +58,33 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           <SearchIcon aria-hidden className="size-8 text-muted-foreground" />
           <p className="font-medium">Search the catalog</p>
           <p className="max-w-md text-muted-foreground text-sm">
-            Try product names, models, or brands — for example, <em>iPhone 15 Pro</em>,{' '}
-            <em>Sony WH-1000XM5</em>, or <em>OnePlus</em>.
+            Try product names, models, or brands — for example, <em>HP 67 Black</em>,{' '}
+            <em>Epson 003</em>, or <em>Brother TN-2280</em>.
           </p>
         </div>
       ) : products.length === 0 ? (
-        <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-16 text-center">
-          <p className="font-medium">No products match "{q}"</p>
-          <p className="mt-1 text-muted-foreground text-sm">
-            Check your spelling, try a more general term, or browse the categories.
-          </p>
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed bg-muted/30 px-4 py-16 text-center">
+          <SearchIcon aria-hidden className="size-8 text-muted-foreground" />
+          <div>
+            <p className="font-medium">No products match "{q}"</p>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Try a more general term, check spelling, or browse a category below.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/category/ink-cartridges">Ink Cartridges</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/category/toner-cartridges">Toner Cartridges</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/category/ink-bottles">Ink Bottles</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/category">All categories</Link>
+            </Button>
+          </div>
         </div>
       ) : (
         <ProductGrid products={products} />

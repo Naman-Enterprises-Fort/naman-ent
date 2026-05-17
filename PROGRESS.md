@@ -91,9 +91,79 @@ Sprint 0 = bootstrap = lives directly on `main` because there's nothing to merge
 
 ## Last Session Summary
 
-**Date:** 2026-05-14
-**Sprint:** UI polish + missing-page fixes (chore branch: `chore/ui-polish-and-missing-pages`)
-**Status:** CODE COMPLETE — typecheck clean, `pnpm build` succeeds end-to-end, 48-route HTTP smoke run against `pnpm start` shows zero linked-from-UI 404s remaining (only truly-unknown URLs fall through to the new branded 404 page).
+**Date:** 2026-05-17 (overnight autonomous test + polish pass)
+**Sprint:** Demo polish on `chore/seed-printer-ink-catalog`
+**Status:** CODE COMPLETE — `pnpm typecheck`, `pnpm lint` (2 pre-existing pagination warnings only, 0 new), `pnpm build` all pass. End-to-end COD order placed successfully as `test@naman.dev`. Branch has 7 commits ahead of develop; **not pushed to remote** — left for user's morning review.
+
+### What this session was about
+
+User went to sleep with an explicit ask: "subah tak chahta hu tum ab bina mere kisi input ke tum pura ye website application proper testing karke jo issues hoga fix kar dena ek achha UI and sabhi functionality hone chahiye ab mai direct morning me miluga." Autonomous overnight audit + fix pass across every public surface, the authenticated customer flow (cart → COD checkout), and the admin order pipeline.
+
+### Done this session
+
+**Audit — every public surface visited in Chrome via MCP:**
+- Home (hero + 8-tile category grid + Trending strip + Top brands)
+- 18-category `/category` index page
+- Ink Cartridges PLP (filters, sort, pagination, brand facets)
+- HP 67 Black PDP (gallery, price, In-stock, CTAs, PIN check, specs accordion, related strip)
+- `/search` (happy path "hp" → 27 products, typo "carttridge" → 0 results, no-results "xyzzyqq")
+- `/cart` (free-shipping bar, qty stepper, save-for-later, totals)
+- `/privacy` + `/login` + `/register` + branded `/404`
+- `/account/{overview,addresses,orders,wishlist}` placeholder + real pages
+
+**Authenticated + admin flow tested end-to-end:**
+- Wrote [scripts/create-test-user.ts](./scripts/create-test-user.ts) — idempotent helper that bypasses the register → verify-email UI dance. Two users seeded: `test@naman.dev / TestUser2026!` (CUSTOMER) + `admin@naman.dev / AdminUser2026!` (SUPER_ADMIN).
+- COD checkout end-to-end: filled the accordion checkout form (PIN 400001 → Mumbai/Maharashtra auto-fill via India Post), selected Standard delivery, COD as the only available payment method (Razorpay test keys not wired and the page gracefully degrades), placed order **NMN20260516-HE7V9H** for ₹1,198.
+- `/account/orders/NMN20260516-HE7V9H` renders full customer view: Pending → Confirmed timeline, items, address cards, Payment COD · PENDING, Cancel order button.
+- Admin `/admin/orders` lists the order with status chips. `/admin/orders/[id]` admin detail walks status transitions: clicked "Mark processing" → CONFIRMED → PROCESSING transition succeeded and the timeline appended a Processing entry.
+
+**Bugs found + fixed (4 atomic commits this session, all on `chore/seed-printer-ink-catalog`):**
+
+| Commit | Type | Description |
+|---|---|---|
+| `29b4e0f` | crit | Product image monotony — every product in a category showed the same office-flatlay photo because IMG.* held one URL per theme. Fixed with photo-arrays per theme + a stable djb2-style slug-hash picker. Now Trending row, every PLP, and every PDP related-strip show real visual variety. Same commit: swapped 3 off-theme category tile photos (AIO Printers showed a Polaroid camera, Refill Kits showed art supplies, Printer Ribbons showed a Polaroid film box) and fixed the desktop header search-bar placeholder truncation by removing `flex-1` from nav + dropping nav from 6→5 categories + adding `min-w-[260px]` to the search container. |
+| `7c8682d` | crit | Stale cart items leaked through the customer-visible cart. After the cartridge re-seed, prior testing-session carts still held `CartItem` rows pointing at archived OnePlus 12 / Galaxy S24 etc. Filtered them out in `getCartView` + `getCartItemCount` via `variant: { product: { deletedAt: null, status: 'ACTIVE' } }`. Cart icon badge dropped from 2 → 1 and the OnePlus 12 line vanished from the cart page. |
+| `6d8d671` | crit | Same stale-product bug blocked order placement with "OnePlus 12 is no longer available" even though the cart view didn't show it. Mirrored the same filter into `placeOrderForCheckout`'s cartItem.findMany. COD order placed end-to-end after the fix. Same commit adds the test-user helper script. |
+| `8286de7` | bug | Three pool photos pruned after visual verification: `1657993204179` (SD card), `1665611018161` (Polaroid box), `1659380884984` (35mm film canister). Search no-results state now has clickable category buttons (Ink Cartridges / Toner Cartridges / Ink Bottles / All categories) + updated example queries to printer/cartridge brand-models. Committed working-file `.audit-issues.md` for audit trail. |
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `pnpm typecheck` (`tsc --noEmit`) | ✅ exit 0, zero errors |
+| `pnpm lint` (`biome lint .`) | ✅ 2 pre-existing pagination + breadcrumbs `noArrayIndexKey` warnings, **0 new** |
+| `pnpm build` | ✅ exit 0, full route manifest compiled |
+| `pnpm db:seed` | ✅ 18 categories, 18 brands, 65 products |
+| Chrome MCP smoke (Home → PLP → PDP → Search → Cart → Checkout → Order detail → Admin orders → Admin order transition) | ✅ COD order NMN20260516-HE7V9H placed end-to-end, CONFIRMED → PROCESSING transition succeeded |
+
+### Decisions made this session
+
+- **Image pools instead of per-SKU photo curation.** Manually picking 65 distinct Unsplash photos for 65 products would have taken hours and many would have been off-theme anyway (Unsplash's "printer cartridge" search returns SD cards, Polaroid cameras, film canisters mixed in with real printer parts). The hash-pick-from-pool approach gives ~3-7 photos per theme with stable per-slug variety, lets us prune off-theme outliers cheaply, and keeps the seed file readable. Trade-off: occasional hash collisions where 2 products in the same theme rotate to the same photo. Acceptable for a demo.
+- **Test user via SQL helper, not UI registration.** `scripts/create-test-user.ts` upserts both users with verified emails directly. Avoids the round trip of register form → `[email:dev] →` stdout → verify-email click → manual SUPER_ADMIN role bump via SQL. Idempotent (`upsert` on email) so the script is safe to re-run.
+- **Cart filtering applied at read sites, not as a CartItem cleanup.** The filter `variant.product.{deletedAt: null, status: 'ACTIVE'}` was added to `getCartView`, `getCartItemCount`, and `placeOrderForCheckout`. Stale CartItem rows stay in the DB so a Phase-2 cron can decide the retention window (e.g., "purge items whose parent product has been archived for > 30 days"). Cleaner than aggressively deleting in the read path.
+- **No push to remote.** Branch has 7 commits ahead of develop including 4 from this session (29b4e0f, 7c8682d, 6d8d671, 8286de7) — all stayed local for user's morning review before any PR. Workflow rule: overnight autonomy doesn't include shared-state mutations.
+
+### Up next (your morning) — to take this branch from CODE COMPLETE to merged
+
+1. **Read the commit diff** for this session — `git log --oneline 5f83d6f..HEAD` on `chore/seed-printer-ink-catalog` to see all 7 commits since the prior session merge into develop.
+2. **Manually browse the demo** at `http://localhost:3000` to confirm the visual changes match what's described above. If `pnpm dev` isn't running, `docker compose up -d && pnpm dev` brings everything up. Use `test@naman.dev / TestUser2026!` to test the authenticated flows, or `admin@naman.dev / AdminUser2026!` for admin.
+3. **Decide on remaining open polish** (logged in `.audit-issues.md`):
+   - **[polish]** Dashboard KPI counts include archived rows (Categories 24 / Brands 22 vs the 18 active each). Either rename labels to "Categories (incl. archived)" or filter the counts.
+   - **[deferred-Phase-2]** Search typo tolerance — pg_trgm doesn't catch "carttridge" → "cartridge". Tune similarity threshold or add a tsvector column.
+   - **[deferred-Phase-2]** Some pool photos visually close but still adjacent rather than literal cartridges (industrial-printer-with-magenta-paper vs a desktop inkjet). Real product photography via the Cloudinary upload widget is the proper fix.
+4. **Open the PR**: `gh pr create --base develop --head chore/seed-printer-ink-catalog --title "Demo polish: image variety, cart/order stale-data filters, search empty-state CTAs"`.
+5. **Then a separate develop → main release PR** when ready to deploy.
+
+### Branch state at session end
+
+- **Branch:** `chore/seed-printer-ink-catalog` (not pushed)
+- **Commits ahead of `develop`:** 7 (3 from earlier session + 4 from overnight: 29b4e0f, 7c8682d, 6d8d671, 8286de7)
+- **HEAD:** `8286de7` — fix(catalog,search): prune off-theme image pool + add search-empty CTAs
+- **Working tree:** 1 modified file (`prisma/seed.ts` — the lint-warning-cleanup edit to `pickPhoto`). Trivial — can squash into HEAD or commit as its own `chore(seed): drop non-null assertions in pickPhoto`.
+- **Background services:** `naman-postgres` Docker container, `pnpm dev` on port 3000.
+- **Test artefacts in DB:** 1 order (NMN20260516-HE7V9H, PROCESSING, ₹1,198 COD), 2 test users (test@naman.dev customer + admin@naman.dev super-admin), 1 active cart for test@naman.dev.
+
+### Previous session (2026-05-14 — UI polish + missing-page fixes)
 
 ### What this session was about
 

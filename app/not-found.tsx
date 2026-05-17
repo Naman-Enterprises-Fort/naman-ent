@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { Logo } from '@/components/shop/logo';
 
 const SUGGESTIONS = [
-  { label: 'Smartphones', href: '/category/smartphones' as const },
-  { label: 'Laptops', href: '/category/laptops' as const },
-  { label: 'Audio', href: '/category/audio' as const },
-  { label: 'Wearables', href: '/category/wearables' as const },
+  { label: 'Ink Cartridges', href: '/category/ink-cartridges' as const },
+  { label: 'Toner Cartridges', href: '/category/toner-cartridges' as const },
+  { label: 'Ink Bottles', href: '/category/ink-bottles' as const },
+  { label: 'Printers', href: '/category/inkjet-printers' as const },
   { label: 'All categories', href: '/category' as const },
 ];
 
@@ -48,7 +48,7 @@ export default function NotFound() {
                     id="nf-search"
                     name="q"
                     type="search"
-                    placeholder="Search smartphones, laptops, audio…"
+                    placeholder="Search ink, toner, cartridges…"
                     className="flex h-10 w-full rounded-md border border-input bg-background pr-3 pl-9 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
                 </div>
