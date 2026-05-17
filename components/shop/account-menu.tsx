@@ -1,8 +1,9 @@
 'use client';
 
-import { LogOut, MapPin, Package, ShieldCheck, User } from 'lucide-react';
+import { LogIn, LogOut, MapPin, Package, ShieldCheck, User, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,13 +20,7 @@ export interface AccountMenuProps {
 
 export function AccountMenu({ user }: AccountMenuProps) {
   if (!user) {
-    return (
-      <Button asChild variant="ghost" size="icon" aria-label="Sign in">
-        <Link href="/login">
-          <User aria-hidden className="size-5" />
-        </Link>
-      </Button>
-    );
+    return <UnauthenticatedMenu />;
   }
 
   const initial = (user.name ?? user.email ?? '?').trim().charAt(0).toUpperCase();
@@ -83,6 +78,76 @@ export function AccountMenu({ user }: AccountMenuProps) {
         >
           <LogOut aria-hidden />
           Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
+ * Guest-state account control. Hover OR click reveals a small dropdown
+ * with both Sign-in + Create-account links — discoverable for users who
+ * don't immediately know which they need, without forcing a navigate.
+ *
+ * Hover is implemented with a 150ms close delay so cursor travel from the
+ * trigger to the menu items doesn't dismiss the menu mid-glide. The Radix
+ * primitives we already use for the signed-in menu accept a controlled
+ * `open` prop, so we reuse them and skip a bespoke component.
+ */
+function UnauthenticatedMenu() {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelClose() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function scheduleClose() {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Sign in or create account"
+          onMouseEnter={() => {
+            cancelClose();
+            setOpen(true);
+          }}
+          onMouseLeave={scheduleClose}
+        >
+          <User aria-hidden className="size-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="min-w-[13rem]"
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+      >
+        <DropdownMenuLabel className="font-normal">
+          <p className="font-medium text-sm">Welcome</p>
+          <p className="text-muted-foreground text-xs">Sign in or create an account.</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/login">
+            <LogIn aria-hidden />
+            Sign in
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/register">
+            <UserPlus aria-hidden />
+            Create an account
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
