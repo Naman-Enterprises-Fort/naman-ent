@@ -1,6 +1,6 @@
 'use client';
 
-import { LogIn, LogOut, MapPin, Package, ShieldCheck, User } from 'lucide-react';
+import { LogOut, MapPin, Package, ShieldCheck, User } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ export function AccountMenu({ user }: AccountMenuProps) {
     return (
       <Button asChild variant="ghost" size="icon" aria-label="Sign in">
         <Link href="/login">
-          <LogIn aria-hidden className="size-5" />
+          <User aria-hidden className="size-5" />
         </Link>
       </Button>
     );

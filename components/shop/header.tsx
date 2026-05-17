@@ -51,7 +51,12 @@ export async function Header({
           <SearchBar size="sm" suggest />
         </div>
 
-        <div className="flex items-center gap-1">
+        {/* `ml-auto` here keeps the icon cluster right-aligned on mobile,
+            where the desktop search bar (the previous flex-item with
+            `ml-auto`) is hidden and would otherwise leave the icons sitting
+            next to the logo. On desktop the search still wins the spacer
+            because it appears earlier in the flex order. */}
+        <div className="ml-auto flex items-center gap-1">
           <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex">
             <Link href="/account/wishlist" aria-label="Wishlist">
               <Heart aria-hidden className="size-5" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Loader2, ShoppingBag, Zap } from 'lucide-react';
+import { Check, Loader2, ShoppingCart, Zap } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useCartUi } from '@/lib/cart-store';
@@ -75,7 +75,7 @@ export function AddToCartButton({
           {buyNow ? (
             <Zap aria-hidden className="size-4" />
           ) : (
-            <ShoppingBag aria-hidden className="size-4" />
+            <ShoppingCart aria-hidden className="size-4" />
           )}
           {label}
         </>

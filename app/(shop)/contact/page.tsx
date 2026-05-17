@@ -2,6 +2,7 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalArticle, LegalList, LegalSection } from '@/components/legal/legal-article';
+import { ContactForm } from '@/components/shop/contact-form';
 import { storeConfig } from '@/lib/content/store-config';
 
 export const metadata: Metadata = {
@@ -18,7 +19,15 @@ export default function ContactPage() {
       description="We answer every email. Here is how to reach us, and our grievance redressal details under India's e-commerce rules."
       lastUpdated={storeConfig.policyEffectiveDate}
     >
-      <LegalSection id="support" heading="Customer support">
+      <LegalSection id="enquiry" heading="Send us a message">
+        <p>
+          Got a question about an order, product compatibility, bulk pricing, or anything else? Drop
+          us a note and we'll get back to you within one business day.
+        </p>
+        <ContactForm />
+      </LegalSection>
+
+      <LegalSection id="support" heading="Other ways to reach us">
         <ul className="flex flex-col gap-3 rounded-lg border bg-card p-5">
           <li className="flex items-start gap-3">
             <Mail aria-hidden className="mt-0.5 size-4 text-muted-foreground" />

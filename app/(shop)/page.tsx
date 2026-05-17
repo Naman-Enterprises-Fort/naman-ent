@@ -72,9 +72,6 @@ export default async function HomePage() {
         {/* Hero */}
         <section className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
           <div className="flex flex-col gap-5">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border bg-card px-3 py-1 font-medium text-muted-foreground text-xs">
-              Phase 1 · India · Razorpay-secured
-            </span>
             <h1 className="font-semibold text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
               Genuine printer ink &amp; toner, <br className="hidden sm:inline" />
               delivered fast across India.
@@ -207,7 +204,7 @@ export default async function HomePage() {
               {brands.map((b) => (
                 <li key={b.id}>
                   <Link
-                    href={`/search?brand=${b.slug}`}
+                    href={`/category/ink-cartridges?brand=${b.slug}`}
                     aria-label={`Shop ${b.name}`}
                     className="group flex h-20 items-center justify-center rounded-lg border bg-card transition-colors hover:bg-accent"
                   >

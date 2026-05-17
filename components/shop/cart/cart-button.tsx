@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartUi } from '@/lib/cart-store';
 import { useCart } from '@/lib/hooks/use-cart';
@@ -31,7 +31,7 @@ export function CartButton({
       onClick={() => setOpen(true)}
       className="relative"
     >
-      <ShoppingBag aria-hidden className="size-5" />
+      <ShoppingCart aria-hidden className="size-5" />
       {count > 0 && (
         <span
           aria-hidden

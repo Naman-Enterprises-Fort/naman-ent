@@ -1,4 +1,4 @@
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +12,7 @@ export function EmptyCart({ compact = false }: { compact?: boolean }) {
       }
     >
       <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <ShoppingBag aria-hidden className="size-6" />
+        <ShoppingCart aria-hidden className="size-6" />
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold text-base">Your cart is empty</h2>

@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutGrid, Search, ShoppingBag, Store, User } from 'lucide-react';
+import { LayoutGrid, Search, ShoppingCart, Store, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/hooks/use-cart';
@@ -10,7 +10,7 @@ const items = [
   { href: '/', label: 'Home', icon: Store },
   { href: '/category', label: 'Categories', icon: LayoutGrid },
   { href: '/search', label: 'Search', icon: Search },
-  { href: '/cart', label: 'Cart', icon: ShoppingBag },
+  { href: '/cart', label: 'Cart', icon: ShoppingCart },
   { href: '/account', label: 'Account', icon: User },
 ] as const;
 
