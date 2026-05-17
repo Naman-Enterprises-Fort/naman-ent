@@ -55,7 +55,10 @@ export default async function CategoryPage({
   const last = slug[slug.length - 1];
   if (!last) notFound();
 
-  const category = await safe(() => getCategoryBySlug(last));
+  // NB: not wrapped in `safe()` so that a missing category calls `notFound()`
+  // before RSC streaming begins — Next 16 + Turbopack commit the response
+  // status when the first byte streams, so a late `notFound()` keeps HTTP 200.
+  const category = await getCategoryBySlug(last);
   if (!category) notFound();
 
   const filtersInput = {

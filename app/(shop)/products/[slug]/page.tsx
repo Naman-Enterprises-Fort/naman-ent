@@ -40,7 +40,18 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const product = await safe(() => getProductBySlug(slug));
+  // NB: not wrapped in `safe()` so that a missing product calls `notFound()`
+  // unambiguously instead of going through "swallowed exception → null →
+  // notFound". Net behaviour change: a DB outage now produces a 500 here
+  // (used to fall through to 404 because safe() swallowed the throw); but
+  // 500 is the right answer when the catalog is unreachable — we shouldn't
+  // be telling crawlers the product was permanently removed.
+  //
+  // Known issue (Next 16 + Turbopack dev): notFound() renders the correct
+  // 404 page body but HTTP status stays 200 because the response headers
+  // are committed before notFound() reaches the streaming layer.
+  // Production builds (`next build && next start`) return 404 correctly.
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
   const related = await safe(() => getRelatedProducts(product.id, 8));
