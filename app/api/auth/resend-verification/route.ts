@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const verifyUrl = `${appUrl()}/verify-email?token=${secret}`;
     await sendEmail({
       to: user.email,
-      subject: 'Verify your email — Naman Electronics',
+      subject: 'Verify your email — Naman Enterprises',
       react: createElement(VerifyEmail, { name: user.name, verifyUrl }),
     }).catch(() => undefined);
   }

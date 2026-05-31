@@ -83,7 +83,7 @@ export async function startCheckoutSession(params: {
     gatewayOrderId: rzpOrder.id,
   });
 
-  const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Electronics';
+  const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Enterprises';
 
   return {
     order,

@@ -1,6 +1,6 @@
 # Manual Testing Guide
 
-Complete functional + UX test pass for the Naman Electronics demo. Run before any client demo or release.
+Complete functional + UX test pass for the Naman Enterprises demo. Run before any client demo or release.
 
 **Estimated time:** 90–120 minutes for a full run · 15 minutes for the smoke test only.
 

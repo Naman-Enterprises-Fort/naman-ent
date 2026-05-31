@@ -1,6 +1,6 @@
 # Free-Tier Demo Deployment Guide
 
-Get the Naman Electronics demo live on a public URL **with zero ongoing cost**, so you can share a link with a client.
+Get the Naman Enterprises demo live on a public URL **with zero ongoing cost**, so you can share a link with a client.
 
 **Total time:** 45–60 minutes for first deploy · 5 minutes for subsequent re-deploys.
 
@@ -144,7 +144,7 @@ Without Redis, rate limiting + account lockout silently degrade (permissive no-o
    AUTH_SECRET               = <generate via `openssl rand -base64 32`>
    NEXTAUTH_SECRET           = <same as AUTH_SECRET — Auth.js v5 reads both>
    NEXT_PUBLIC_APP_URL       = https://<your-vercel-url>.vercel.app
-   NEXT_PUBLIC_STORE_NAME    = Naman Electronics
+   NEXT_PUBLIC_STORE_NAME    = Naman Enterprises
    ```
 
    **Optional (skip for minimal demo):**
@@ -164,7 +164,7 @@ Without Redis, rate limiting + account lockout silently degrade (permissive no-o
    UPSTASH_REDIS_REST_TOKEN  = xxx
 
    # Compliance / contact (otherwise legal pages show "[TODO: register]")
-   STORE_LEGAL_NAME          = Naman Electronics Pvt Ltd
+   STORE_LEGAL_NAME          = Naman Enterprises Pvt Ltd
    STORE_REGISTERED_ADDRESS  = ...
    STORE_GSTIN               = 27ABCDE1234F1Z5
    SUPPORT_EMAIL             = support@your-domain.com

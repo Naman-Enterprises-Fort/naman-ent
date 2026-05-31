@@ -12,7 +12,7 @@ import {
 import type { ReactNode } from 'react';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-const STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Electronics';
+const STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Enterprises';
 
 const styles = {
   body: {

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   if (user.email) {
     await sendEmail({
       to: user.email,
-      subject: 'Welcome to Naman Electronics',
+      subject: 'Welcome to Naman Enterprises',
       react: createElement(WelcomeEmail, { name: user.name, shopUrl: appUrl() }),
     }).catch(() => undefined); // welcome failure must not break verify flow
   }

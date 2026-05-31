@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
-const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Electronics';
+const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Enterprises';
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
 export const metadata: Metadata = {

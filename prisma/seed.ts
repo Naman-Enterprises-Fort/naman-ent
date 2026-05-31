@@ -2352,7 +2352,7 @@ async function main() {
   await prisma.warehouse.upsert({
     where: { code: 'DEFAULT' },
     create: {
-      name: 'Naman Electronics — Mumbai HQ',
+      name: 'Naman Enterprises — Mumbai HQ',
       code: 'DEFAULT',
       line1: 'TODO: Warehouse address line 1',
       line2: null,

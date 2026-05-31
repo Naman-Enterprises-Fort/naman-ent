@@ -102,7 +102,7 @@ export default function NotFound() {
 
       <footer className="border-t">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 text-muted-foreground text-xs sm:px-6">
-          <p>© {new Date().getFullYear()} Naman Electronics</p>
+          <p>© {new Date().getFullYear()} Naman Enterprises</p>
           <p>Made in India · Razorpay-powered checkout</p>
         </div>
       </footer>

@@ -8,7 +8,7 @@ export interface WelcomeEmailProps {
 
 export function WelcomeEmail({ name, shopUrl }: WelcomeEmailProps) {
   return (
-    <EmailLayout preview="Welcome to Naman Electronics">
+    <EmailLayout preview="Welcome to Naman Enterprises">
       <Section>
         <Text style={emailStyles.heading}>Welcome{name ? `, ${name}` : ''}</Text>
         <Text style={emailStyles.paragraph}>

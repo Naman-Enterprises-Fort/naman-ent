@@ -15,8 +15,8 @@ const env = (key: string, fallback: string) => {
 };
 
 export const storeConfig = {
-  name: env('NEXT_PUBLIC_STORE_NAME', 'Naman Electronics'),
-  legalName: env('STORE_LEGAL_NAME', 'Naman Electronics Pvt Ltd [TODO: register]'),
+  name: env('NEXT_PUBLIC_STORE_NAME', 'Naman Enterprises'),
+  legalName: env('STORE_LEGAL_NAME', 'Naman Enterprises Pvt Ltd [TODO: register]'),
   url: env('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
   supportEmail: env('SUPPORT_EMAIL', 'support@naman-ent.example'),
   supportPhone: env('SUPPORT_PHONE', '+91 00000 00000'),

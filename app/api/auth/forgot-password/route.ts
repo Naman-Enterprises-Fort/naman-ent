@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const resetUrl = `${appUrl()}/reset-password?token=${secret}`;
     await sendEmail({
       to: user.email,
-      subject: 'Reset your password — Naman Electronics',
+      subject: 'Reset your password — Naman Enterprises',
       react: createElement(PasswordResetEmail, { name: user.name, resetUrl }),
     }).catch(() => undefined);
   }

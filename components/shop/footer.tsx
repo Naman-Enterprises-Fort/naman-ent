@@ -164,7 +164,7 @@ export function Footer() {
       <div className="border-t">
         <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-5 sm:px-6">
           <p className="text-muted-foreground text-xs">
-            © {new Date().getFullYear()} Naman Electronics. All rights reserved.
+            © {new Date().getFullYear()} Naman Enterprises. All rights reserved.
           </p>
         </div>
       </div>
