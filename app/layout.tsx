@@ -19,6 +19,12 @@ const geistMono = Geist_Mono({
 const storeName = process.env.NEXT_PUBLIC_STORE_NAME ?? 'Naman Enterprises';
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
+// Default social-share preview image (1200×630). Used for OpenGraph +
+// Twitter cards so WhatsApp/FB/X links render a preview instead of a blank
+// card. Phase-2: replace with a branded, commissioned OG image asset.
+const OG_IMAGE =
+  'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=1200&h=630&fit=crop&q=80&auto=format';
+
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
@@ -37,9 +43,18 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     siteName: storeName,
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: `${storeName} — genuine printer ink, toner & cartridges`,
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
+    images: [OG_IMAGE],
   },
   robots: {
     index: true,

@@ -19,7 +19,11 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const product = await safe(() => getProductBySlug(slug));
-  if (!product) return { title: 'Product not found' };
+  // Calling notFound() here (rather than returning a title) sets the HTTP 404
+  // status while metadata is still resolving — BEFORE the response streams.
+  // Doing it only in the page body leaves the status at 200 on Vercel prod
+  // (the head has already flushed), which is the soft-404 SEO bug.
+  if (!product) notFound();
 
   const description = product.seoDesc ?? product.shortDesc ?? product.description.slice(0, 160);
   const path = `/products/${slug}`;

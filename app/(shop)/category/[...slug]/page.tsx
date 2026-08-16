@@ -26,9 +26,12 @@ type Params = Promise<{ slug: string[] }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const last = slug[slug.length - 1];
-  if (!last) return {};
+  if (!last) notFound();
   const cat = await safe(() => getCategoryBySlug(last));
-  if (!cat) return { title: 'Category not found' };
+  // notFound() in generateMetadata sets the 404 status before streaming —
+  // fixes the soft-404 (HTTP 200 on missing slugs) that a page-body-only
+  // notFound() leaves behind on Vercel prod.
+  if (!cat) notFound();
   const path = `/category/${slug.join('/')}`;
   return {
     title: cat.seoTitle ?? cat.name,

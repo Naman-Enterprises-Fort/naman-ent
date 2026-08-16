@@ -55,6 +55,10 @@ export async function checkServiceability(pincode: string): Promise<Serviceabili
 
   let city: string | null = null;
   let state: string | null = null;
+  // `known === false` means India Post *successfully* responded that this
+  // pincode has no post office → a genuinely invalid/unknown pincode.
+  // `known === null` means we couldn't reach India Post (outage) → fail open.
+  let known: boolean | null = null;
 
   try {
     const res = await fetch(`${base}/pincode/${pincode}`, {
@@ -62,17 +66,25 @@ export async function checkServiceability(pincode: string): Promise<Serviceabili
     });
     if (res.ok) {
       const data = (await res.json()) as IndiaPostEntry[];
-      const office = data?.[0]?.PostOffice?.[0];
+      const entry = data?.[0];
+      const office = entry?.PostOffice?.[0];
       if (office) {
+        known = true;
         city = office.District || office.Name;
         state = office.State;
+      } else if (entry) {
+        // Definitive "no post office for this pincode" from India Post.
+        known = false;
       }
     }
   } catch {
-    // India Post outage — fall through with null city/state.
+    // India Post outage — leave `known = null` and fall open below.
   }
 
-  const serviceable = !NON_SERVICEABLE_PINS.has(pincode);
+  // Serviceable when: not on the deny-list AND not a definitively-unknown
+  // pincode. Outages (known === null) still fall open so a temporary India
+  // Post blip doesn't block checkout.
+  const serviceable = !NON_SERVICEABLE_PINS.has(pincode) && known !== false;
   const isMetro = METRO_PIN_PREFIXES.some((p) => pincode.startsWith(p));
 
   const eta: ServiceabilityEta = {
