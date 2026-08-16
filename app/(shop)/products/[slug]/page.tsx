@@ -7,6 +7,7 @@ import { ProductCard } from '@/components/shop/product-card';
 import { ProductGallery } from '@/components/shop/product-gallery';
 import { SpecsAccordion } from '@/components/shop/specs-accordion';
 import { StickyCta } from '@/components/shop/sticky-cta';
+import { storeConfig } from '@/lib/content/store-config';
 import { getProductBySlug, getRelatedProducts } from '@/lib/services/catalog';
 import { safe } from '@/lib/utils/safe';
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/utils/seo';
@@ -59,7 +60,7 @@ export default async function ProductPage({ params }: { params: Params }) {
   const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
   if (!defaultVariant) notFound();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = storeConfig.url;
   const productUrl = `${appUrl}/products/${slug}`;
   const breadcrumbCategory = product.categories[0]?.category;
 

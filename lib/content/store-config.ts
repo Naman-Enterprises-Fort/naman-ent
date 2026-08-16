@@ -17,7 +17,9 @@ const env = (key: string, fallback: string) => {
 export const storeConfig = {
   name: env('NEXT_PUBLIC_STORE_NAME', 'Naman Enterprises'),
   legalName: env('STORE_LEGAL_NAME', 'Naman Enterprises Pvt Ltd [TODO: register]'),
-  url: env('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
+  // Strip any trailing slash so hand-built JSON-LD URLs (`${url}/products/...`)
+  // don't render a double slash when NEXT_PUBLIC_APP_URL is set with one.
+  url: env('NEXT_PUBLIC_APP_URL', 'http://localhost:3000').replace(/\/$/, ''),
   supportEmail: env('SUPPORT_EMAIL', 'support@naman-ent.example'),
   supportPhone: env('SUPPORT_PHONE', '+91 00000 00000'),
   registeredAddress: env(

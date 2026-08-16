@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   const owner = await getCartOwner();
-  await clearCart(owner);
+  try {
+    await clearCart(owner);
+  } catch (e) {
+    // A guest with no cart cookie has nothing to clear — clearCart throws
+    // CartError('NOT_FOUND'). Mirror GET's no-identity behaviour and return
+    // an empty cart view instead of letting the error escape as a 500.
+    if (!(e instanceof CartError)) throw e;
+  }
   const cart = await getCartView(owner);
   return NextResponse.json({ cart });
 }

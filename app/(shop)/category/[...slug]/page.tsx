@@ -6,6 +6,7 @@ import { MobileFilterSheet } from '@/components/shop/filters/mobile-filter-sheet
 import { Pagination } from '@/components/shop/pagination';
 import { ProductGrid } from '@/components/shop/product-grid';
 import { SortMenu } from '@/components/shop/sort-menu';
+import { storeConfig } from '@/lib/content/store-config';
 import {
   getBrandFacets,
   getCategoryBreadcrumb,
@@ -94,7 +95,7 @@ export default async function CategoryPage({
   );
   const facets = facetsForCategory.length ? facetsForCategory : brandFacets;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = storeConfig.url;
   const ld = breadcrumbJsonLd([
     { name: 'Home', url: appUrl },
     { name: 'Categories', url: `${appUrl}/category` },

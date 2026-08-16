@@ -8,7 +8,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const parsed = serviceabilityQuerySchema.safeParse({
-    pincode: url.searchParams.get('pincode'),
+    // Coerce a missing param to '' so the schema returns the friendly
+    // pincode-format message instead of a raw "expected string, received null".
+    pincode: url.searchParams.get('pincode') ?? '',
   });
   if (!parsed.success) {
     return NextResponse.json(
